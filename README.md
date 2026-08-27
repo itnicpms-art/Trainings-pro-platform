@@ -1,6 +1,39 @@
-# Trainings PRO / NICPMS Academy — Codex Implementation Pack v1
+# Trainings PRO / NICPMS Academy
 
-Acest pachet transformă conceptul platformei într-un set de documente utilizabile pentru Codex.
+Fundația aplicației Trainings PRO, construită cu Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui și Supabase.
+
+## Pornire locală
+
+1. Instalează dependențele cu `pnpm install`.
+2. Copiază `.env.example` în `.env.local` și completează cheile proiectului Supabase.
+3. Aplică `supabase/migrations/001_foundation.sql` în proiectul Supabase.
+4. Pornește aplicația cu `pnpm dev` și deschide `http://localhost:3000`.
+
+Comenzi disponibile:
+
+```text
+pnpm dev
+pnpm lint
+pnpm build
+pnpm start
+```
+
+Pentru Vercel, configurează aceleași variabile din `.env.example`; aplicația folosește configurația standard Next.js și nu necesită adaptări suplimentare de build.
+
+## Rute implementate în TASK 001
+
+```text
+/
+/login
+/register
+/app
+/app/profiles
+/app/settings
+/admin
+/admin/settings
+```
+
+## Documentație de produs
 
 ## Ce conține
 
@@ -15,7 +48,7 @@ Acest pachet transformă conceptul platformei într-un set de documente utilizab
 - `supabase/migrations/001_foundation.sql` — migrare Supabase pentru primul task.
 - `public/brand/` — logo-ul oficial Trainings PRO.
 
-## Regula de lucru cu Codex
+## Ordinea de implementare
 
 Nu da toate documentele simultan. Începe cu:
 
