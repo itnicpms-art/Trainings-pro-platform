@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="430" viewBox="0 0 1200 430" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tpMain" x1="70" y1="40" x2="620" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#18E5F0"/>
+      <stop offset="0.38" stop-color="#0874FF"/>
+      <stop offset="0.72" stop-color="#2932D6"/>
+      <stop offset="1" stop-color="#C018F5"/>
+    </linearGradient>
+
+    <linearGradient id="tpDark" x1="185" y1="115" x2="500" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#002EAE"/>
+      <stop offset="0.55" stop-color="#07135C"/>
+      <stop offset="1" stop-color="#210078"/>
+    </linearGradient>
+
+    <linearGradient id="proBadge" x1="690" y1="258" x2="1015" y2="318" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0AA8FF"/>
+      <stop offset="0.54" stop-color="#1558FF"/>
+      <stop offset="1" stop-color="#BB22F7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- PPT-safe SVG: no filters, no masks, no blend modes, no external fonts -->
+
+  <!-- Connected TP monogram -->
+  <g>
+    <!-- Main connected T and P ribbon -->
+    <path d="
+      M58 118
+      C70 72 112 46 166 46
+      H488
+      C538 46 570 75 557 112
+      C549 136 524 151 487 151
+      H333
+      C306 151 288 165 279 188
+      L218 346
+      C210 368 190 382 167 382
+      H113
+      C94 382 82 362 90 344
+      L153 184
+      C162 162 145 151 120 151
+      H82
+      C63 151 52 139 58 118
+      Z
+
+      M333 151
+      H428
+      C507 151 566 199 568 265
+      C570 343 506 390 418 390
+      H321
+      C295 390 282 368 294 347
+      L327 288
+      C337 270 355 259 376 259
+      H426
+      C455 259 477 242 477 219
+      C477 198 457 182 428 182
+      H322
+      C301 182 291 158 333 151
+      Z"
+      fill="url(#tpMain)"/>
+
+    <!-- Inner shadow folds -->
+    <path d="
+      M260 188
+      C279 155 310 133 355 117
+      H482
+      C519 117 543 111 556 99
+      C553 126 530 151 487 151
+      H333
+      C306 151 288 165 279 188
+      L218 346
+      C210 368 190 382 167 382
+      H145
+      C183 301 218 235 260 188
+      Z"
+      fill="url(#tpDark)" opacity="0.72"/>
+
+    <path d="
+      M356 259
+      H426
+      C455 259 477 242 477 219
+      C477 198 457 182 428 182
+      H380
+      C466 187 522 231 516 289
+      C510 352 454 390 371 390
+      H321
+      C295 390 282 368 294 347
+      L327 288
+      C337 270 355 259 356 259
+      Z"
+      fill="url(#tpDark)" opacity="0.86"/>
+
+    <!-- Bright edge highlights -->
+    <path d="M75 116 C87 84 119 64 166 64 H493 C522 64 540 76 548 91"
+          fill="none" stroke="#45F4FF" stroke-width="7" stroke-linecap="round" opacity="0.72"/>
+    <path d="M326 373 C410 360 482 329 530 276"
+          fill="none" stroke="#1FE8FF" stroke-width="5" stroke-linecap="round" opacity="0.62"/>
+    <path d="M152 184 C161 162 145 151 120 151"
+          fill="none" stroke="#32E6FF" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  </g>
+
+  <!-- Wordmark: smaller text, PPT-safe Arial -->
+  <g>
+    <text x="635" y="230"
+          font-family="Arial, Helvetica, sans-serif"
+          font-size="82"
+          font-weight="700"
+          letter-spacing="-2"
+          fill="#06113B">Trainings</text>
+
+    <!-- PRO speed lines -->
+    <rect x="650" y="266" width="74" height="14" rx="7" fill="#18A6FF"/>
+    <rect x="683" y="293" width="52" height="13" rx="6.5" fill="#205BFF"/>
+    <rect x="632" y="318" width="72" height="13" rx="6.5" fill="#8333FF"/>
+
+    <!-- PRO badge -->
+    <path d="M735 250
+             H979
+             C1006 250 1028 272 1028 299
+             C1028 326 1006 348 979 348
+             H720
+             C697 348 682 323 694 303
+             L710 276
+             C716 260 723 250 735 250Z"
+          fill="url(#proBadge)"/>
+
+    <text x="757" y="323"
+          font-family="Arial, Helvetica, sans-serif"
+          font-size="74"
+          font-style="italic"
+          font-weight="900"
+          letter-spacing="2"
+          fill="#FFFFFF">PRO</text>
+
+    <path d="M733 261 H981 C996 261 1008 268 1016 280"
+          fill="none" stroke="#50F4FF" stroke-width="5" stroke-linecap="round" opacity="0.65"/>
+  </g>
+</svg>

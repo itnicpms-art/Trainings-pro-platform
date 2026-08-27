@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Trainings PRO logo">
+  <defs>
+    <linearGradient id="tpGradient" x1="160" y1="195" x2="735" y2="705" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#19E6F2"/>
+      <stop offset="0.32" stop-color="#0966FF"/>
+      <stop offset="0.68" stop-color="#3027D9"/>
+      <stop offset="1" stop-color="#C018FF"/>
+    </linearGradient>
+
+    <linearGradient id="tpDark" x1="260" y1="250" x2="615" y2="650" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#063DCA"/>
+      <stop offset="0.55" stop-color="#07186B"/>
+      <stop offset="1" stop-color="#1B0C85"/>
+    </linearGradient>
+
+    <linearGradient id="tpHighlight" x1="175" y1="170" x2="640" y2="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2DF6F6"/>
+      <stop offset="0.55" stop-color="#078AFF"/>
+      <stop offset="1" stop-color="#2216CD"/>
+    </linearGradient>
+
+    <linearGradient id="proGradient" x1="880" y1="560" x2="1255" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#138BFF"/>
+      <stop offset="0.52" stop-color="#245CFF"/>
+      <stop offset="1" stop-color="#BF24FF"/>
+    </linearGradient>
+
+    <linearGradient id="proTextGradient" x1="960" y1="550" x2="1215" y2="590" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#DDEBFF"/>
+    </linearGradient>
+
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#0B1E6E" flood-opacity="0.22"/>
+    </filter>
+
+    <filter id="innerGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.08  0 0 0 0 0.75  0 0 0 0 1  0 0 0 0.55 0"/>
+      <feBlend in2="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+
+  <!-- Transparent background -->
+
+  <!-- Connected TP monogram -->
+  <g filter="url(#softShadow)">
+    <!-- Top ribbon of T continuing into P -->
+    <path d="M158 255
+             C168 215 206 190 254 190
+             H660
+             C708 190 740 218 724 253
+             C716 271 697 282 669 282
+             H455
+             C418 282 394 299 381 333
+             L323 489
+             C308 529 298 571 298 617
+             V694
+             C298 716 281 732 260 732
+             H221
+             C199 732 183 716 183 694
+             V384
+             C183 340 206 305 245 286
+             H178
+             C161 286 153 275 158 255Z"
+          fill="url(#tpHighlight)"/>
+
+    <!-- T vertical body -->
+    <path d="M246 286
+             H381
+             C350 315 331 353 331 401
+             V694
+             C331 718 313 736 290 736
+             H223
+             C201 736 184 718 184 694
+             V382
+             C184 335 208 305 246 286Z"
+          fill="url(#tpGradient)"/>
+
+    <!-- Dark inner fold on T -->
+    <path d="M331 401
+             C331 350 356 313 402 286
+             H476
+             C415 331 373 390 349 463
+             C338 497 331 538 331 585
+             V694
+             C331 716 313 734 292 736
+             C316 671 330 590 331 493
+             V401Z"
+          fill="url(#tpDark)" opacity="0.88"/>
+
+    <!-- P outer connected body -->
+    <path d="M402 286
+             H595
+             C688 286 761 344 766 429
+             C772 530 685 604 567 604
+             H471
+             C441 604 422 628 422 658
+             V706
+             C422 723 409 736 392 736
+             H347
+             C332 736 321 722 327 708
+             L391 541
+             C405 505 432 484 472 484
+             H560
+             C610 484 647 455 647 417
+             C647 381 614 354 567 354
+             H440
+             C410 354 391 331 402 286Z"
+          fill="url(#tpGradient)"/>
+
+    <!-- Inner ribbon/fold forming P bowl -->
+    <path d="M471 484
+             H557
+             C610 484 647 455 647 417
+             C647 390 628 368 596 358
+             C685 371 735 428 718 501
+             C700 578 619 626 501 625
+             H471
+             C443 625 423 647 423 674
+             V705
+             C423 725 407 738 388 736
+             C398 645 425 559 471 484Z"
+          fill="url(#tpDark)" opacity="0.92"/>
+
+    <!-- Magenta underside highlight -->
+    <path d="M574 604
+             C671 600 735 543 746 467
+             C760 513 739 565 690 606
+             C650 640 598 658 540 658
+             H475
+             C445 658 424 680 424 709
+             C424 724 412 736 397 736
+             H356
+             C401 653 469 610 574 604Z"
+          fill="url(#tpGradient)" opacity="0.78"/>
+
+    <!-- Cyan edge highlights -->
+    <path d="M175 253 C187 222 219 204 258 204 H657 C694 204 718 219 720 245"
+          stroke="#3FF5FF" stroke-width="6" stroke-linecap="round" opacity="0.48"/>
+    <path d="M431 594 C506 571 610 535 690 473"
+          stroke="#25EAFF" stroke-width="5" stroke-linecap="round" opacity="0.42"/>
+    <path d="M191 380 C190 334 211 307 249 290"
+          stroke="#1EEBFF" stroke-width="4" stroke-linecap="round" opacity="0.35"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g>
+    <text x="820" y="510"
+          font-family="Inter, Montserrat, Arial, Helvetica, sans-serif"
+          font-size="96"
+          font-weight="800"
+          letter-spacing="-3"
+          fill="#07143B">Trainings</text>
+
+    <!-- PRO motion lines -->
+    <rect x="878" y="553" width="84" height="18" rx="9" fill="url(#proGradient)" opacity="0.95"/>
+    <rect x="905" y="585" width="63" height="16" rx="8" fill="url(#proGradient)" opacity="0.95"/>
+    <rect x="860" y="616" width="80" height="16" rx="8" fill="url(#proGradient)" opacity="0.95"/>
+
+    <!-- PRO badge -->
+    <path d="M968 540
+             H1210
+             C1238 540 1260 563 1260 590
+             C1260 617 1238 640 1210 640
+             H940
+             C914 640 897 612 910 589
+             L923 566
+             C932 550 948 540 968 540Z"
+          fill="url(#proGradient)" filter="url(#softShadow)"/>
+
+    <text x="965" y="612"
+          font-family="Inter, Montserrat, Arial, Helvetica, sans-serif"
+          font-size="78"
+          font-style="italic"
+          font-weight="900"
+          letter-spacing="2"
+          fill="url(#proTextGradient)">PRO</text>
+
+    <!-- Subtle badge highlight -->
+    <path d="M955 552 H1210 C1225 552 1238 561 1245 573"
+          stroke="#57F6FF" stroke-width="5" stroke-linecap="round" opacity="0.45"/>
+  </g>
+</svg>

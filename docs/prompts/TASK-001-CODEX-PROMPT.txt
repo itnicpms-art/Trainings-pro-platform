@@ -1,0 +1,55 @@
+You are building the foundation of the Trainings PRO / NICPMS Academy educational platform.
+
+Implement TASK 001 — Project Setup & Foundation.
+
+Tech stack:
+- Next.js with App Router
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Supabase
+- PostgreSQL
+
+Create a clean, production-ready project structure with three main areas:
+- public website at /
+- user application at /app
+- admin platform at /admin
+
+Implement:
+1. Next.js project structure
+2. Tailwind and shadcn/ui setup
+3. Supabase client/server utilities
+4. Basic auth pages: /login and /register
+5. Public landing page
+6. User app layout with sidebar
+7. Admin layout with sidebar
+8. Database migrations for:
+   - profiles
+   - organizations
+   - organization_members
+   - roles
+   - permissions
+   - role_permissions
+   - profile_roles
+9. Seed data for base roles and permissions
+10. Row Level Security policies for the initial tables
+11. .env.example with required variables
+
+Important product rules:
+- Supabase Auth is the source of truth for authentication.
+- A user can have multiple profiles.
+- A profile can have roles with scope.
+- Use the official Trainings PRO logo from /public/brand.
+- Do not build courses, curriculum, assignments, projects, quizzes, tests, exams, surveys, certificates, payments, approvals or calendar yet.
+- Keep this task focused only on the foundation.
+
+Use clean TypeScript, reusable components, and a scalable folder structure.
+
+Acceptance criteria:
+- The app runs locally without errors.
+- /, /login, /register, /app and /admin exist.
+- Supabase utilities are ready.
+- Database migrations are included.
+- RLS is enabled.
+- Roles and permissions are seeded.
+- The structure is ready for TASK 002.
