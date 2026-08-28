@@ -53,14 +53,14 @@ const ro = {
       items: [
         { title: "Membri & Organizații", description: "Utilizatori, profiluri, companii, universități, roluri și permisiuni." },
         { title: "Catalog cursuri", description: "Descoperă cursuri, beneficii, curriculum, profesori, prețuri și condiții." },
-        { title: "Learning", description: "Module, lecții, video, PDF, resurse și urmărirea progresului." },
+        { title: "Educație", description: "Module, lecții, video, PDF, resurse și urmărirea progresului." },
         { title: "Evaluări", description: "Quiz-uri, teste, examene, încercări multiple, punctaje și rezultate." },
         { title: "Calendar", description: "Cursuri live, webinare, examene și consultații programate." },
         { title: "Programări", description: "Rezervare loc, capacitate, liste de așteptare și anulări." },
         { title: "Consultanță", description: "Sesiuni live 1:1 / grup și solicitări offline asincrone." },
         { title: "Certificări", description: "Certificate, criterii, expirare și verificare autenticitate certificat." },
         { title: "Academic", description: "Universități, programe, discipline, semestre și credite ECTS." },
-        { title: "Admin & Analytics", description: "Administrare, rapoarte, rezultate, venituri și activitate." },
+        { title: "Administrare & Analiză", description: "Administrare, rapoarte, rezultate, venituri și activitate." },
       ],
     },
     capabilities: {
