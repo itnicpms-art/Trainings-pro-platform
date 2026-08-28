@@ -4,13 +4,13 @@ import type { Dictionary } from "@/i18n/dictionaries/ro";
 
 export function FuturisticDashboard({ translations: t }: { translations: Dictionary["home"]["dashboard"] }) {
   return (
-    <div className="relative mx-auto w-full max-w-[700px] lg:ml-auto">
+    <div className="relative mx-auto w-full max-w-[620px] lg:ml-auto xl:max-w-[660px] 2xl:max-w-[700px]">
       <div aria-hidden="true" className="absolute -inset-12 rounded-[4rem] bg-[radial-gradient(circle_at_50%_50%,rgba(66,133,255,0.24),transparent_55%),radial-gradient(circle_at_80%_20%,rgba(203,54,255,0.18),transparent_35%)] blur-2xl" />
       <div aria-hidden="true" className="absolute -left-8 top-1/3 h-px w-28 rotate-12 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_16px_#22d3ee]" />
       <div aria-hidden="true" className="absolute -right-3 top-14 size-2 rounded-full bg-fuchsia-400 shadow-[0_0_22px_6px_rgba(232,121,249,0.45)]" />
 
       <div className="relative rotate-[0.5deg] rounded-[2rem] border border-white/80 bg-white/55 p-2 shadow-[0_35px_110px_rgba(21,47,118,0.24)] backdrop-blur-2xl sm:p-3">
-        <div className="flex min-h-[490px] overflow-hidden rounded-[1.55rem] border border-slate-900/10 bg-[#081334] text-white sm:min-h-[560px]">
+        <div className="flex min-h-[470px] overflow-hidden rounded-[1.55rem] border border-slate-900/10 bg-[#081334] text-white sm:min-h-[500px] xl:min-h-[525px] 2xl:min-h-[560px]">
           <aside className="flex w-14 shrink-0 flex-col items-center gap-5 border-r border-white/10 bg-[#050d27]/90 py-5 sm:w-16">
             <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-fuchsia-500 shadow-[0_0_22px_rgba(59,130,246,0.55)]"><Sparkles className="size-4" /></div>
             {[LayoutDashboard, BookOpen, CalendarDays, Trophy].map((Icon, index) => <div key={index} className={index === 0 ? "flex size-9 items-center justify-center rounded-xl bg-blue-500/20 text-cyan-300 ring-1 ring-blue-400/30" : "flex size-9 items-center justify-center text-blue-200/45"}><Icon className="size-4" /></div>)}
