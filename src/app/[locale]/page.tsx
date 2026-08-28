@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, BadgeCheck, GraduationCap, Infinity as InfinityIcon, RefreshCw, Sparkles } from "lucide-react";
 
 import { CapabilitiesStrip } from "@/components/homepage/capabilities-strip";
@@ -22,8 +23,18 @@ export default async function HomePage({ params }: { params: LocaleParams }) {
     <main className="min-h-screen overflow-hidden bg-white">
       <PublicHeader locale={locale} translations={t} languageLabel={dictionary.language.label} />
 
-      <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#fafdff_0%,#f4f8ff_38%,#faf5ff_100%)]">
-        <div aria-hidden="true" className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_12%_18%,rgba(37,99,235,0.12),transparent_28%),radial-gradient(circle_at_90%_16%,rgba(192,24,245,0.11),transparent_25%),radial-gradient(circle_at_65%_78%,rgba(34,211,238,0.11),transparent_30%)]" />
+      <section className="relative isolate overflow-hidden">
+        <Image
+          src="/images/home/futuristic-education-bg.png"
+          alt=""
+          fill
+          preload
+          sizes="100vw"
+          className="-z-30 object-cover object-[58%_center] opacity-75 sm:object-[64%_center] lg:object-[72%_center]"
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-20 bg-gradient-to-r from-white via-white/90 to-blue-950/10 sm:via-white/80 lg:via-white/70 lg:to-indigo-950/5" />
+        <div aria-hidden="true" className="absolute inset-0 -z-20 bg-[linear-gradient(to_bottom,rgba(248,251,255,0.42),rgba(246,244,255,0.3)_62%,rgba(255,255,255,0.76))]" />
+        <div aria-hidden="true" className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_12%_18%,rgba(37,99,235,0.1),transparent_28%),radial-gradient(circle_at_90%_16%,rgba(192,24,245,0.1),transparent_25%)]" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-35 [background-image:linear-gradient(rgba(37,99,235,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(37,99,235,0.08)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
         <svg aria-hidden="true" className="absolute inset-0 -z-10 size-full opacity-40" viewBox="0 0 1440 850" preserveAspectRatio="none"><path d="M-60 610C230 430 385 775 720 520s510-130 790-340" fill="none" stroke="url(#hero-line)" strokeWidth="1.2" /><path d="M-80 680C250 500 420 840 790 590s490-120 760-330" fill="none" stroke="url(#hero-line)" strokeWidth="0.65" /><defs><linearGradient id="hero-line" x1="0" x2="1"><stop stopColor="#2563eb" stopOpacity="0" /><stop offset="0.5" stopColor="#38bdf8" /><stop offset="1" stopColor="#c026f5" stopOpacity="0" /></linearGradient></defs></svg>
 
