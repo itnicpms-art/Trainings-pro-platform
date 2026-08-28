@@ -20,18 +20,22 @@ pnpm start
 
 Pentru Vercel, configurează aceleași variabile din `.env.example`; aplicația folosește configurația standard Next.js și nu necesită adaptări suplimentare de build.
 
-## Rute implementate în TASK 001
+## Rute bilingve
 
 ```text
-/
-/login
-/register
-/app
-/app/profiles
-/app/settings
-/admin
-/admin/settings
+/{locale}
+/{locale}/login
+/{locale}/register
+/{locale}/app
+/{locale}/app/profiles
+/{locale}/app/settings
+/{locale}/admin
+/{locale}/admin/settings
 ```
+
+Localele acceptate sunt `ro` și `en`, iar limba implicită este româna. Rutele vechi fără prefix de limbă redirecționează către echivalentul `/ro`. Selectorul RO / EN păstrează calea paginii și salvează preferința în cookie-ul `NEXT_LOCALE`.
+
+Textele interfeței sunt definite în `src/i18n/dictionaries/ro.ts` și `src/i18n/dictionaries/en.ts`. Orice text UI nou trebuie adăugat în ambele fișiere de traduceri, nu scris direct în pagini sau componente.
 
 ## Documentație de produs
 

@@ -13,18 +13,22 @@ zona membru/student/instructor/profesor/coordonator
 zona superadmin / organization admin / university admin
 ```
 
-## Rute inițiale pentru Task 001
+## Rutare bilingvă
 
 ```text
-/
-/login
-/register
-/app
-/app/profiles
-/app/settings
-/admin
-/admin/settings
+/{locale}
+/{locale}/login
+/{locale}/register
+/{locale}/app
+/{locale}/app/profiles
+/{locale}/app/settings
+/{locale}/admin
+/{locale}/admin/settings
 ```
+
+`{locale}` acceptă `ro` și `en`, cu `ro` ca limbă implicită. Rutele fără prefix de limbă redirecționează către `/ro`, iar selectorul de limbă păstrează calea echivalentă și salvează preferința în cookie-ul `NEXT_LOCALE`.
+
+Toate textele UI noi trebuie definite în ambele fișiere din `src/i18n/dictionaries/`; paginile și componentele nu trebuie să conțină texte traductibile scrise direct.
 
 ## Rute viitoare
 
@@ -57,13 +61,14 @@ zona superadmin / organization admin / university admin
 ```text
 src/
   app/
-    page.tsx
-    login/page.tsx
-    register/page.tsx
-    app/layout.tsx
-    app/page.tsx
-    admin/layout.tsx
-    admin/page.tsx
+    [locale]/
+      page.tsx
+      login/page.tsx
+      register/page.tsx
+      app/layout.tsx
+      app/page.tsx
+      admin/layout.tsx
+      admin/page.tsx
 
   components/
     layout/
@@ -80,6 +85,13 @@ src/
   types/
     database.ts
     app.ts
+
+  i18n/
+    config.ts
+    get-dictionary.ts
+    dictionaries/
+      ro.ts
+      en.ts
 
 public/
   brand/
