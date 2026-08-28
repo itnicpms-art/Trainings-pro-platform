@@ -30,6 +30,18 @@ zona superadmin / organization admin / university admin
 
 Toate textele UI noi trebuie definite în ambele fișiere din `src/i18n/dictionaries/`; paginile și componentele nu trebuie să conțină texte traductibile scrise direct.
 
+## Homepage public — TASK 001.6
+
+Homepage-ul localizat (`/ro` și `/en`) folosește o prezentare premium, futuristă, construită direct în componente React și Tailwind CSS. Include hero, previzualizare vizuală a platformei, module, capabilități transversale, indicatori și footer, fără fotografii stock sau screenshot-uri statice full-page.
+
+Indicatorii publici respectă următoarele reguli:
+
+- sunt afișate numai valori reale obținute din surse agregate, public-safe și compatibile cu politicile RLS;
+- statisticile inventate sau valorile de marketing neverificate nu sunt permise;
+- dacă o sursă sigură nu există, interfața afișează exclusiv `În pregătire` / `Coming soon`;
+- pagina publică nu folosește cheia service-role și nu interoghează direct date private;
+- modulele viitoare vor conecta `src/lib/homepage-metrics.ts` la surse agregate sigure, pe măsură ce tabelele și funcționalitățile aferente sunt implementate.
+
 ## Rute viitoare
 
 ```text
