@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { ArrowRight, Building2, CheckCircle2, Layers3, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { ArrowRight, BadgeCheck, GraduationCap, Infinity as InfinityIcon, RefreshCw, Sparkles } from "lucide-react";
 
-import { BrandLogo } from "@/components/brand-logo";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { CapabilitiesStrip } from "@/components/homepage/capabilities-strip";
+import { FuturisticDashboard } from "@/components/homepage/futuristic-dashboard";
+import { HomepageMetrics } from "@/components/homepage/homepage-metrics";
+import { PlatformModules } from "@/components/homepage/platform-modules";
+import { PublicFooter } from "@/components/homepage/public-footer";
+import { PublicHeader } from "@/components/homepage/public-header";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { getDictionary, resolveLocale, type LocaleParams } from "@/i18n/get-dictionary";
 import { cn } from "@/lib/utils";
 
-const foundationIcons = [UsersRound, Building2, ShieldCheck];
+const trustIcons = [InfinityIcon, BadgeCheck, GraduationCap, RefreshCw];
 
 export default async function HomePage({ params }: { params: LocaleParams }) {
   const locale = await resolveLocale(params);
@@ -17,68 +20,38 @@ export default async function HomePage({ params }: { params: LocaleParams }) {
 
   return (
     <main className="min-h-screen overflow-hidden bg-white">
-      <header className="relative z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-3 px-5 lg:px-8">
-          <BrandLogo />
-          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex" aria-label={t.navigationLabel}>
-            <a href="#platforma" className="transition-colors hover:text-blue-700">{t.navigation[0]}</a>
-            <a href="#fundatie" className="transition-colors hover:text-blue-700">{t.navigation[1]}</a>
-            <a href="#securitate" className="transition-colors hover:text-blue-700">{t.navigation[2]}</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher locale={locale} label={dictionary.language.label} />
-            <Link href={`/${locale}/login`} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>{t.login}</Link>
-            <Link href={`/${locale}/register`} className={cn(buttonVariants({ size: "lg" }), "brand-gradient hidden px-5 shadow-lg shadow-blue-600/20 sm:inline-flex")}>{t.register}</Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader locale={locale} translations={t} languageLabel={dictionary.language.label} />
 
-      <section id="platforma" className="relative isolate">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_75%_20%,rgba(24,229,240,0.15),transparent_28%),radial-gradient(circle_at_20%_30%,rgba(192,24,245,0.09),transparent_25%)]" />
-        <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-20 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-28">
-          <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700"><Sparkles className="size-4" /> {t.badge}</div>
-            <h1 className="max-w-3xl text-5xl font-semibold leading-[1.05] tracking-[-0.04em] text-[#06113B] sm:text-6xl lg:text-7xl">{t.titleBefore} <span className="brand-text">{t.titleAccent}</span></h1>
-            <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">{t.description}</p>
+      <section className="relative isolate overflow-hidden bg-[linear-gradient(135deg,#fafdff_0%,#f4f8ff_38%,#faf5ff_100%)]">
+        <div aria-hidden="true" className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_12%_18%,rgba(37,99,235,0.12),transparent_28%),radial-gradient(circle_at_90%_16%,rgba(192,24,245,0.11),transparent_25%),radial-gradient(circle_at_65%_78%,rgba(34,211,238,0.11),transparent_30%)]" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-35 [background-image:linear-gradient(rgba(37,99,235,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(37,99,235,0.08)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
+        <svg aria-hidden="true" className="absolute inset-0 -z-10 size-full opacity-40" viewBox="0 0 1440 850" preserveAspectRatio="none"><path d="M-60 610C230 430 385 775 720 520s510-130 790-340" fill="none" stroke="url(#hero-line)" strokeWidth="1.2" /><path d="M-80 680C250 500 420 840 790 590s490-120 760-330" fill="none" stroke="url(#hero-line)" strokeWidth="0.65" /><defs><linearGradient id="hero-line" x1="0" x2="1"><stop stopColor="#2563eb" stopOpacity="0" /><stop offset="0.5" stopColor="#38bdf8" /><stop offset="1" stopColor="#c026f5" stopOpacity="0" /></linearGradient></defs></svg>
+
+        <div className="mx-auto grid min-h-[760px] max-w-[1480px] items-center gap-16 px-5 py-16 lg:grid-cols-[0.86fr_1.14fr] lg:px-8 lg:py-24 xl:min-h-[850px]">
+          <div className="relative z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-white/75 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-blue-700 shadow-sm backdrop-blur"><Sparkles className="size-4 text-fuchsia-500" />{t.hero.eyebrow}</div>
+            <h1 className="mt-7 text-[clamp(3.7rem,7vw,7.5rem)] font-semibold leading-[0.82] tracking-[-0.07em] text-[#06102d]">
+              {t.hero.headline.map((line, index) => <span key={line} className={cn("block", index === 1 && "brand-text pb-[0.08em]", index === 2 && "text-[#121f52]")}>{line}</span>)}
+            </h1>
+            <p className="mt-8 max-w-xl text-base leading-7 text-slate-600 sm:text-xl sm:leading-8">{t.hero.subtitle}</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link href={`/${locale}/register`} className={cn(buttonVariants({ size: "lg" }), "brand-gradient h-11 px-6 shadow-xl shadow-blue-600/20")}>{t.start} <ArrowRight /></Link>
-              <Link href={`/${locale}/app`} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 px-6")}>{t.workspace}</Link>
+              <a href="#modules" className={cn(buttonVariants({ size: "lg" }), "brand-gradient h-12 px-6 shadow-[0_16px_38px_rgba(37,99,235,0.25)]")}>{t.hero.primaryCta}<ArrowRight className="size-4" /></a>
+              <a href="#capabilities" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-12 border-blue-200 bg-white/70 px-6 text-[#071331] backdrop-blur hover:bg-white")}>{t.hero.secondaryCta}</a>
             </div>
-            <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600">
-              {t.benefits.map((item) => <span key={item} className="flex items-center gap-2"><CheckCircle2 className="size-4 text-emerald-500" />{item}</span>)}
+            <div className="mt-10 grid max-w-xl grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
+              {t.hero.trustIndicators.map((label, index) => { const Icon = trustIcons[index]; return <div key={label} className="flex items-center gap-2.5"><div className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-white/80 text-blue-700 shadow-sm"><Icon className="size-4" /></div><span className="text-xs font-medium leading-4 text-slate-600">{label}</span></div>; })}
             </div>
+            <div className="mt-8 sm:hidden"><Link href={`/${locale}/register`} className={cn(buttonVariants({ variant: "ghost" }), "px-0 text-blue-700")}>{t.register}<ArrowRight /></Link></div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-xl">
-            <div className="absolute -inset-8 -z-10 rounded-[3rem] bg-gradient-to-br from-cyan-300/30 via-blue-400/20 to-fuchsia-400/30 blur-3xl" />
-            <div className="rounded-[2rem] border border-white/80 bg-white/90 p-3 shadow-[0_30px_90px_rgba(6,17,59,0.16)] backdrop-blur">
-              <div className="rounded-[1.4rem] bg-[#06113B] p-6 text-white">
-                <div className="flex items-center justify-between"><span className="text-sm font-medium text-cyan-200">{t.previewTitle}</span><Layers3 className="size-5 text-cyan-300" /></div>
-                <h2 className="mt-12 text-3xl font-semibold">{t.previewWelcome}</h2>
-                <p className="mt-2 max-w-sm text-sm leading-6 text-blue-100/80">{t.previewDescription}</p>
-              </div>
-              <div className="grid gap-3 p-3 sm:grid-cols-2">
-                <Card className="border-0 bg-slate-50 shadow-none ring-0"><CardContent className="p-5"><div className="mb-8 flex size-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700"><UsersRound /></div><p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t.activeProfile}</p><p className="mt-1 text-base font-semibold text-[#06113B]">{t.memberRole}</p></CardContent></Card>
-                <Card className="border-0 bg-slate-50 shadow-none ring-0"><CardContent className="p-5"><div className="mb-8 flex size-10 items-center justify-center rounded-xl bg-fuchsia-100 text-fuchsia-700"><ShieldCheck /></div><p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t.security}</p><p className="mt-1 text-base font-semibold text-[#06113B]">{t.protectedAccess}</p></CardContent></Card>
-              </div>
-            </div>
-          </div>
+          <FuturisticDashboard translations={t.dashboard} />
         </div>
       </section>
 
-      <section id="fundatie" className="border-y border-slate-200 bg-slate-50/80 py-20">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="max-w-2xl"><p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-700">{t.foundationEyebrow}</p><h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#06113B] sm:text-4xl">{t.foundationTitle}</h2></div>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {t.foundations.map(({ title, description }, index) => {
-              const Icon = foundationIcons[index];
-              return <Card key={title} className="bg-white py-0 shadow-sm ring-slate-200 transition-transform hover:-translate-y-1"><CardContent className="p-7"><div className="flex items-center justify-between"><div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-violet-100 text-blue-700"><Icon /></div><span className="text-sm font-semibold text-slate-300">0{index + 1}</span></div><h3 className="mt-8 text-xl font-semibold text-[#06113B]">{title}</h3><p className="mt-3 leading-7 text-slate-600">{description}</p></CardContent></Card>;
-            })}
-          </div>
-        </div>
-      </section>
-
-      <footer id="securitate" className="bg-[#06113B] text-white"><div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 sm:flex-row sm:items-center sm:justify-between lg:px-8"><BrandLogo inverted /><div className="flex flex-col items-start gap-4 sm:items-end"><LanguageSwitcher locale={locale} label={dictionary.language.label} inverted /><p className="max-w-md text-sm leading-6 text-blue-100/70">{t.footer}</p></div></div></footer>
+      <PlatformModules translations={t.modules} />
+      <CapabilitiesStrip translations={t.capabilities} />
+      <HomepageMetrics locale={locale} translations={t.metrics} />
+      <PublicFooter locale={locale} translations={t.footer} languageLabel={dictionary.language.label} />
     </main>
   );
 }
