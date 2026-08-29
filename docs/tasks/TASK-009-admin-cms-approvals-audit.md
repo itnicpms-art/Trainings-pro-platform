@@ -1,5 +1,9 @@
 # TASK 009 — Admin CMS, Approvals & Audit
 
+## Baseline validat
+
+Domeniul CMS public, workflow-ul `Draft` / `Preview` / `Publicat`, restricțiile de rol, regulile pentru metrici reale și cerințele de audit sunt documentate în `docs/auth/MANAGER_VALIDATED_ONBOARDING_CMS_RULES.md`. Acest task trebuie să respecte acel baseline, fără a transforma fișierul Excel de referință într-o dependență runtime sau într-o sursă de date a aplicației.
+
 
 ## Scop
 

@@ -5,6 +5,8 @@
 
 Construiește logica reală de autentificare, profile multiple, profil activ și verificare de permisiuni.
 
+Implementarea trebuie să pornească de la regulile validate din `docs/auth/MANAGER_VALIDATED_ONBOARDING_CMS_RULES.md`, inclusiv fluxurile de register, invitațiile, starea `pending`, derivarea sub-tipurilor organizaționale, aprobarea rolurilor sensibile și matricea RBAC. Documentul de reguli nu autorizează crearea anticipată a structurii CMS sau a structurii academice din TASK 003.
+
 ## Build
 
 - Register / login / logout.
