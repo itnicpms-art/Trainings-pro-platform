@@ -11,10 +11,11 @@ Fluxurile de acces respectă `docs/auth/MANAGER_VALIDATED_ONBOARDING_CMS_RULES.m
 1. colectează email și parolă;
 2. creează clientul Supabase pentru browser;
 3. apelează `supabase.auth.signInWithPassword()`;
-4. afișează toast de succes sau mesajul Supabase brut;
-5. navighează la `/{locale}/app` și execută `router.refresh()`.
+4. mapează erorile la mesaje localizate și nu afișează mesajul brut;
+5. validează `next` cu `isSafeNextPath()`;
+6. navighează la destinația internă permisă sau `/{locale}/app` și execută `router.refresh()`.
 
-Lipsesc verificarea stării onboarding-ului, încărcarea profilului, return URL sigur și protecția server-side a destinației.
+Layout-ul protejat verifică apoi utilizatorul și starea profilului. Statusurile pending afișează o stare de cont fără date protejate.
 
 ## Login — contract TASK 002
 
@@ -28,7 +29,7 @@ Lipsesc verificarea stării onboarding-ului, încărcarea profilului, return URL
 
 ## Logout — starea curentă
 
-Topbar-ul afișează o opțiune localizată de logout, dar elementul nu are handler și nu apelează `supabase.auth.signOut()`. Nu există Route Handler sau Server Action de logout.
+Topbar-ul și stările pending folosesc logout-ul real din `src/app/api/auth/logout/route.ts`. Handlerul apelează Supabase `signOut()`, șterge cookie-ul HTTP-only de profil activ, iar clientul redirecționează la `/{locale}/login`.
 
 ## Logout — contract TASK 002
 

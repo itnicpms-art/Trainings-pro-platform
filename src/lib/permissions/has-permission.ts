@@ -28,6 +28,7 @@ export async function hasPermission(profileId: string, permissionCode: string, c
     .in("role_id", roleIds)
     .eq("permission_id", permission.id)
     .eq("allowed", true)
+    .eq("approval_required", false)
     .limit(1)
     .maybeSingle();
 

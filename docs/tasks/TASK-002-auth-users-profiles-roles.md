@@ -2,7 +2,7 @@
 
 ## Stare curentă
 
-TASK 002 nu este încă finalizat. Codul curent conține fundația Supabase Auth, formularele de bază pentru email/parolă, încărcarea utilizatorului curent, selectarea primului profil activ și helperul `hasPermission()`. Protecția efectivă a rutelor, logout-ul, cele trei fluxuri de înregistrare, profilul activ persistent și aplicarea completă RBAC rămân de implementat.
+TASK 002 este implementat pe branch-ul de lucru prin migrarea `002_auth_onboarding.sql`, cele trei fluxuri de register, login/logout, Proxy, layout-uri protejate, profile reale, profil activ și helper-ele RBAC. Aplicarea migrării și QA-ul autentificat/RLS pe un proiect Supabase de test rămân obligatorii înainte de deployment.
 
 ## Scop
 
@@ -45,6 +45,13 @@ Baseline-ul manager-validat din TASK 001.9 este sursa de adevăr pentru deciziil
 - `docs/roadmap/TASK_002_COMPLETION_NOTES.md`
 
 Documentația trebuie actualizată pe măsură ce implementarea avansează. Nu trebuie să prezinte drept finalizate comportamente care există doar ca plan.
+
+## Limitări acceptate în această livrare
+
+- Invitațiile sunt fail-closed: codul este hash-uit, cererea intră în `pending_review`, iar membership-ul/rolul nu sunt acordate automat.
+- Emiterea, expirarea, revocarea și consumul invitațiilor necesită backend-ul administrativ viitor.
+- Aprobarea cererilor de reprezentant și atribuirea rolurilor sensibile rămân fluxuri administrative controlate, fără grant public.
+- Managementul complet al organizațiilor și structura academică rămân TASK 003.
 
 ## Design references
 

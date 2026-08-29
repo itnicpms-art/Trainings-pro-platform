@@ -9,7 +9,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
 import { cn } from "@/lib/utils";
 
-export function AppSidebar({ locale, translations: t, mobile = false }: { locale: Locale; translations: Dictionary["shell"]; mobile?: boolean }) {
+export function AppSidebar({ locale, translations: t, activeProfileName, activeProfileStatus, mobile = false }: { locale: Locale; translations: Dictionary["shell"]; activeProfileName: string; activeProfileStatus: string; mobile?: boolean }) {
   const pathname = usePathname();
   const items = [
     { href: `/${locale}/app`, label: t.dashboard, icon: LayoutDashboard },
@@ -26,7 +26,7 @@ export function AppSidebar({ locale, translations: t, mobile = false }: { locale
           return <Link key={href} href={href} className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-[#06113B]")}><Icon className="size-4" />{label}</Link>;
         })}
       </nav>
-      <div className="m-4 rounded-2xl bg-slate-50 p-4"><p className="text-sm font-semibold text-[#06113B]">{t.activeProfile}</p><p className="mt-1 text-xs text-slate-500">{t.memberRole}</p><span className="mt-3 inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">{t.active}</span></div>
+      <div className="m-4 rounded-2xl bg-slate-50 p-4"><p className="text-sm font-semibold text-[#06113B]">{t.activeProfile}</p><p className="mt-1 truncate text-xs text-slate-500">{activeProfileName}</p><span className="mt-3 inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">{activeProfileStatus}</span></div>
     </div>
   );
 }

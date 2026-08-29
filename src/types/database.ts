@@ -1,4 +1,4 @@
-import type { OrganizationType, PermissionScope, ProfileType } from "@/types/app";
+import type { OnboardingFlow, OrganizationType, PermissionScope, ProfileStatus, ProfileType } from "@/types/app";
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -14,9 +14,15 @@ export type Database = {
         Relationships: [];
       };
       profiles: {
-        Row: Timestamped & { id: string; user_id: string; profile_type: ProfileType; display_name: string; label: string | null; organization_id: string | null; university_id: string | null; academic_program_id: string | null; group_id: string | null; is_default: boolean; status: string; updated_at: string };
-        Insert: { id?: string; user_id: string; profile_type: ProfileType; display_name: string; label?: string | null; organization_id?: string | null; university_id?: string | null; academic_program_id?: string | null; group_id?: string | null; is_default?: boolean; status?: string; created_at?: string; updated_at?: string };
-        Update: { profile_type?: ProfileType; display_name?: string; label?: string | null; organization_id?: string | null; university_id?: string | null; academic_program_id?: string | null; group_id?: string | null; is_default?: boolean; status?: string; updated_at?: string };
+        Row: Timestamped & { id: string; user_id: string; profile_type: ProfileType; display_name: string; first_name: string | null; last_name: string | null; label: string | null; organization_id: string | null; university_id: string | null; academic_program_id: string | null; group_id: string | null; preferred_locale: "ro" | "en"; onboarding_flow: OnboardingFlow; terms_accepted_at: string | null; terms_version: string | null; is_default: boolean; status: ProfileStatus; updated_at: string };
+        Insert: { id?: string; user_id: string; profile_type: ProfileType; display_name: string; first_name?: string | null; last_name?: string | null; label?: string | null; organization_id?: string | null; university_id?: string | null; academic_program_id?: string | null; group_id?: string | null; preferred_locale?: "ro" | "en"; onboarding_flow?: OnboardingFlow; terms_accepted_at?: string | null; terms_version?: string | null; is_default?: boolean; status?: ProfileStatus; created_at?: string; updated_at?: string };
+        Update: { profile_type?: ProfileType; display_name?: string; first_name?: string | null; last_name?: string | null; label?: string | null; organization_id?: string | null; university_id?: string | null; academic_program_id?: string | null; group_id?: string | null; preferred_locale?: "ro" | "en"; onboarding_flow?: OnboardingFlow; terms_accepted_at?: string | null; terms_version?: string | null; is_default?: boolean; status?: ProfileStatus; updated_at?: string };
+        Relationships: [];
+      };
+      onboarding_requests: {
+        Row: Timestamped & { id: string; user_id: string; profile_id: string; flow: Exclude<OnboardingFlow, "individual">; invitation_code_hash: string | null; organization_name: string | null; organization_type: string | null; website: string | null; reason: string | null; status: "pending_email_confirmation" | "pending_organization_approval" | "pending_review" | "approved" | "rejected"; reviewed_by_profile_id: string | null; reviewed_at: string | null; updated_at: string };
+        Insert: { id?: string; user_id: string; profile_id: string; flow: Exclude<OnboardingFlow, "individual">; invitation_code_hash?: string | null; organization_name?: string | null; organization_type?: string | null; website?: string | null; reason?: string | null; status: "pending_email_confirmation" | "pending_organization_approval" | "pending_review" | "approved" | "rejected"; reviewed_by_profile_id?: string | null; reviewed_at?: string | null; created_at?: string; updated_at?: string };
+        Update: { status?: "pending_email_confirmation" | "pending_organization_approval" | "pending_review" | "approved" | "rejected"; reviewed_by_profile_id?: string | null; reviewed_at?: string | null; updated_at?: string };
         Relationships: [];
       };
       organization_members: {
@@ -51,7 +57,12 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      complete_email_onboarding: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
