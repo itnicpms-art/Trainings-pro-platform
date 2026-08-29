@@ -15,6 +15,21 @@
 | 008 | `TASK-008-certificates-credits-payments.md` | Certificate, credite, payments, subscriptions |
 | 009 | `TASK-009-admin-cms-approvals-audit.md` | Admin CMS complet, approvals, change requests, audit logs |
 
+## Documentație de implementare TASK 002
+
+TASK 002 folosește baseline-ul validat în `docs/auth/MANAGER_VALIDATED_ONBOARDING_CMS_RULES.md`. Documentația de implementare și securitate este împărțită astfel:
+
+- `docs/auth/AUTH_IMPLEMENTATION.md`
+- `docs/auth/REGISTER_AND_ONBOARDING_FLOW.md`
+- `docs/auth/LOGIN_LOGOUT_FLOW.md`
+- `docs/auth/PROFILE_AND_ACTIVE_PROFILE.md`
+- `docs/auth/ROLE_HELPERS_AND_ADMIN_ACCESS.md`
+- `docs/security/ROUTE_PROTECTION.md`
+- `docs/security/RLS_AUTH_NOTES.md`
+- `docs/roadmap/TASK_002_COMPLETION_NOTES.md`
+
+`TASK_002_COMPLETION_NOTES.md` este documentul de stare și trebuie actualizat cu migrațiile, rezultatele QA și limitările reale înainte ca TASK 002 să fie declarat finalizat.
+
 ## Reguli de execuție
 
 - Nu sări peste task-uri.
@@ -22,3 +37,4 @@
 - Fiecare task trebuie să aibă migrations, RLS, UI minim și acceptance criteria.
 - Fiecare task trebuie să pornească de la starea produsă de task-ul anterior.
 - TASK 002 și task-urile ulterioare relevante trebuie să respecte baseline-ul din `docs/auth/MANAGER_VALIDATED_ONBOARDING_CMS_RULES.md`.
+- Documentația TASK 002 trebuie să descrie separat funcționalitatea existentă, funcționalitatea obligatorie neimplementată și elementele amânate pentru TASK 002.5 sau TASK 003.
