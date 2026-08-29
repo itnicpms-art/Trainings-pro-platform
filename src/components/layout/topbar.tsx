@@ -13,10 +13,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
+import type { DashboardVariant } from "@/lib/dashboard/dashboard-config";
 
-type TopbarProps = { area: "app" | "admin"; title: string; locale: Locale; translations: Dictionary["shell"]; languageLabel: string; accountName: string; profileLabel: string; activeProfileName: string; activeProfileStatus: string };
+type TopbarProps = { area: "app" | "admin"; title: string; locale: Locale; translations: Dictionary["shell"]; dashboardTranslations?: Dictionary["app"]["dashboardShell"]; dashboardVariant?: DashboardVariant; languageLabel: string; accountName: string; profileLabel: string; activeProfileName: string; activeProfileStatus: string };
 
-export function Topbar({ area, title, locale, translations: t, languageLabel, accountName, profileLabel, activeProfileName, activeProfileStatus }: TopbarProps) {
+export function Topbar({ area, title, locale, translations: t, dashboardTranslations, dashboardVariant, languageLabel, accountName, profileLabel, activeProfileName, activeProfileStatus }: TopbarProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const initials = accountName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "TP";
@@ -33,13 +34,13 @@ export function Topbar({ area, title, locale, translations: t, languageLabel, ac
       <div className="flex items-center gap-3">
         <Sheet>
           <SheetTrigger render={<Button variant="outline" size="icon" className="lg:hidden" aria-label={t.openNavigation} />}><Menu /></SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0" closeLabel={t.close}><SheetHeader className="sr-only"><SheetTitle>{t.navigation}</SheetTitle><SheetDescription>{t.mainMenu}</SheetDescription></SheetHeader>{area === "app" ? <AppSidebar locale={locale} translations={t} activeProfileName={activeProfileName} activeProfileStatus={activeProfileStatus} mobile /> : <AdminSidebar locale={locale} translations={t} mobile />}</SheetContent>
+          <SheetContent side="left" className="w-72 p-0" closeLabel={t.close}><SheetHeader className="sr-only"><SheetTitle>{t.navigation}</SheetTitle><SheetDescription>{t.mainMenu}</SheetDescription></SheetHeader>{area === "app" && dashboardTranslations && dashboardVariant ? <AppSidebar locale={locale} translations={t} dashboardTranslations={dashboardTranslations} dashboardVariant={dashboardVariant} activeProfileName={activeProfileName} activeProfileStatus={activeProfileStatus} mobile /> : <AdminSidebar locale={locale} translations={t} mobile />}</SheetContent>
         </Sheet>
         <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{area === "app" ? t.mySpace : t.administration}</p><h1 className="text-lg font-semibold tracking-tight text-[#06113B]">{title}</h1></div>
       </div>
       <div className="flex items-center gap-2">
         <LanguageSwitcher locale={locale} label={languageLabel} />
-        <Button variant="ghost" size="icon" aria-label={t.notifications} className="relative"><Bell /><span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-fuchsia-500 ring-2 ring-white" /></Button>
+        <Button variant="ghost" size="icon" aria-label={t.notifications}><Bell /></Button>
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl p-1.5 text-left hover:bg-slate-50">
             <Avatar><AvatarFallback className="bg-blue-100 font-semibold text-blue-700">{initials}</AvatarFallback></Avatar>
