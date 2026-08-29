@@ -7,6 +7,7 @@
 | 001 | `TASK-001-project-setup-foundation.md` | Setup proiect, Supabase, layout-uri, foundation DB |
 | 001.9 | `auth/MANAGER_VALIDATED_ONBOARDING_CMS_RULES.md` | Reguli validate pentru onboarding, invitații, organizații, RBAC, confidențialitate și domeniul CMS viitor |
 | 002 | `TASK-002-auth-users-profiles-roles.md` | Auth, profile multiple, active profile, permissions helper |
+| 002.1 | `TASK-002-1-adaptive-dashboard-shell.md` | Dashboard shell adaptiv după profil activ și rol, fără date demonstrative |
 | 003 | `TASK-003-organizations-universities-academic.md` | Organizații, universități, programe, years, semesters, groups |
 | 004 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
@@ -29,6 +30,13 @@ TASK 002 folosește baseline-ul validat în `docs/auth/MANAGER_VALIDATED_ONBOARD
 - `docs/roadmap/TASK_002_COMPLETION_NOTES.md`
 
 `TASK_002_COMPLETION_NOTES.md` este documentul de stare și trebuie actualizat cu migrațiile, rezultatele QA și limitările reale înainte ca TASK 002 să fie declarat finalizat.
+
+## Documentație TASK 002.1
+
+- `docs/tasks/TASK-002-1-adaptive-dashboard-shell.md` — arhitectura, variantele pe rol, guardrail-urile și limitele shell-ului;
+- `docs/roadmap/TASK_002_1_COMPLETION_NOTES.md` — fișiere, validări, QA și funcționalitatea amânată.
+
+TASK 002.1 nu adaugă backend-uri educaționale, schemă, migrare sau politici RLS. Cardurile și navigația viitoare folosesc exclusiv empty states și marcajele `În pregătire` / `Coming soon` până când task-urile dedicate furnizează date reale.
 
 ## Reguli de execuție
 
