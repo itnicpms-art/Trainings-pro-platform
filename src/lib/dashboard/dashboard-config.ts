@@ -135,6 +135,14 @@ export const dashboardVariants: Record<DashboardVariant, VariantConfig> = {
   },
 };
 
+export function shouldShowDashboardOrganization(
+  variant: DashboardVariant,
+  organizationId: string | null,
+  organizationCount: number,
+) {
+  return variant !== "individualLearner" || Boolean(organizationId) || organizationCount > 0;
+}
+
 export function deriveDashboardVariant(
   profile: UserProfile,
   roleCodes: ReadonlySet<string>,

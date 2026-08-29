@@ -65,6 +65,19 @@ Rămân pentru task-urile viitoare:
 
 QA autentificat pentru fiecare rol necesită conturi/profile seed reale în proiectul Supabase de test; TASK 002.1 nu creează date de test și nu acordă roluri. În sesiunea locală disponibilă nu a existat un cont autentificat, astfel încât validarea vizuală a variantelor se bazează pe configurația tipată, build și inspecția componentelor, iar QA end-to-end pe roluri rămâne un gate înainte de deployment.
 
+## Follow-up densitate desktop și context organizațional
+
+Update-ul din PR #12 compactează dashboard-ul pentru utilizare la zoom browser 100%:
+
+- hero cu padding, titlu, chips și guardrail reduse proporțional;
+- summary cards mai scunde și grid cu patru coloane începând de la breakpoint-ul `lg`;
+- module cards și empty states mai compacte;
+- spațiere verticală și coloana quick actions/security reduse;
+- sidebar desktop redus la 256 px și navigație mai densă;
+- padding-ul principal al layout-ului redus fără a modifica responsive behavior-ul mobil.
+
+Pentru `individualLearner`, `shouldShowDashboardOrganization()` ascunde summary-ul și modulul organizațional când profilul activ nu are `organization_id` și numărul real de organizații este `0`. Celelalte variante își păstrează modulele organizaționale relevante. Când organizația este ascunsă, al patrulea summary card este un modul learner existent cu valoarea sigură `0`, nu o metrică inventată.
+
 ## Referințe
 
 - `docs/auth/MANAGER_VALIDATED_ONBOARDING_CMS_RULES.md`;

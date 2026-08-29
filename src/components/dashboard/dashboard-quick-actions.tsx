@@ -26,14 +26,14 @@ export function DashboardQuickActions({ locale, translations: t, futureLabel, co
   ];
 
   return (
-    <Card className="rounded-2xl bg-white shadow-sm ring-slate-200/80">
+    <Card size="sm" className="rounded-2xl bg-white shadow-sm ring-slate-200/80">
       <CardHeader>
         <CardTitle>{t.title}</CardTitle>
         <CardDescription>{t.description}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-        {actions.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={cn(buttonVariants({ variant: "outline" }), "h-10 justify-between rounded-xl px-3")}><span className="inline-flex items-center gap-2"><Icon className="size-4 text-indigo-600" />{label}</span><ArrowRight className="size-4 text-slate-400" /></Link>)}
-        <div aria-disabled="true" className="flex h-10 items-center justify-between rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 text-sm text-slate-500">
+      <CardContent className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-1">
+        {actions.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={cn(buttonVariants({ variant: "outline" }), "h-9 justify-between rounded-xl px-2.5 text-xs")}><span className="inline-flex items-center gap-2"><Icon className="size-3.5 text-indigo-600" />{label}</span><ArrowRight className="size-3.5 text-slate-400" /></Link>)}
+        <div aria-disabled="true" className="flex h-9 items-center justify-between rounded-xl border border-dashed border-slate-200 bg-slate-50 px-2.5 text-xs text-slate-500">
           <span className="truncate">{t.future}: {futureLabel}</span><Badge variant="secondary">{comingSoon}</Badge>
         </div>
       </CardContent>
