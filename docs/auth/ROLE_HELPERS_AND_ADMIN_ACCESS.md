@@ -6,13 +6,11 @@ Autorizarea urmează matricea manager-validată din `docs/auth/MANAGER_VALIDATED
 
 ## Starea curentă
 
-- `hasPermission()` există.
-- `getProfileRoles()` nu există.
-- `hasRole()` nu există.
-- nu există helper `isPlatformAdmin()`;
-- layout-ul `/admin` nu validează utilizatorul, profilul sau rolul;
-- dashboard-ul admin este accesibil ca UI public dacă ruta este deschisă direct;
-- nu există stare admin restricted reală.
+- `getProfileRoles()`, `hasRole()` și `hasPermission()` sunt implementate server-side.
+- layout-ul `/admin` validează utilizatorul și profilul activ;
+- accesul cere cumulativ rolul `platform_admin` în scope `platform` și `admin.access` aprobat;
+- utilizatorul autentificat fără aceste drepturi primește starea restricted localizată;
+- rolurile și membership-urile nu au mutații publice după migrarea 002.
 
 ## `getProfileRoles()`
 
@@ -27,7 +25,7 @@ Autorizarea urmează matricea manager-validată din `docs/auth/MANAGER_VALIDATED
 5. ignore/rejecte rolurile inactive sau relațiile invalide, dacă schema introduce aceste stări;
 6. returneze listă goală la lipsa accesului, fără a expune rolurile altui profil.
 
-Helper-ul nu este implementat în prezent.
+Helper-ul este implementat în `src/lib/permissions/get-profile-roles.ts`. Query-urile separate pentru assignments și roluri rămân fail-closed și sunt limitate prin RLS la profilurile proprii.
 
 ## `hasRole()`
 
@@ -41,7 +39,7 @@ Helper-ul nu este implementat în prezent.
 - Nu acordă implicit un rol global dacă există același cod într-un scope local.
 - Returnează `false` la eroare, profil lipsă sau scope incompatibil.
 
-Helper-ul nu este implementat în prezent.
+Helper-ul este implementat în `src/lib/permissions/has-role.ts` și verifică opțional `scopeType` și `scopeId`.
 
 ## `hasPermission()`
 
@@ -50,7 +48,7 @@ Helper-ul nu este implementat în prezent.
 1. încărcarea rolurilor profilului din `profile_roles`;
 2. filtrare opțională după `scope_type` și `scope_id`;
 3. identificarea permisiunii după `permissions.code`;
-4. căutarea unui grant `allowed = true` în `role_permissions`;
+4. căutarea unui grant `allowed = true` și `approval_required = false` în `role_permissions`;
 5. rezultat boolean, fail-closed la erori principale.
 
 Limitări curente:
@@ -58,7 +56,7 @@ Limitări curente:
 - nu validează explicit că `profileId` este profilul activ; se bazează pe RLS pentru vizibilitate;
 - nu verifică statusul profilului;
 - nu gestionează deny explicit sau ierarhii de scope;
-- nu este folosit în layout-uri/rute;
+- este folosit împreună cu `hasRole()` în layout-ul admin;
 - ignoră eroarea query-ului final și o transformă implicit în `false`;
 - nu jurnalizează deciziile sensibile;
 - permisiunile foundation nu sunt încă reconciliate complet cu matricea TASK 001.9.
@@ -94,16 +92,14 @@ Pentru un utilizator neautentificat se aplică redirectul de login, nu starea re
 - RLS permite utilizatorului să vadă propriile `profile_roles`.
 - Nu există politici publice de insert/update pentru `profile_roles`.
 - `hasPermission()` poate verifica un grant vizibil în sesiunea curentă.
+- `getProfileRoles()` și `hasRole()` sunt implementate și fail-closed.
 - Rolul `platform_admin` este seed-uit și primește permisiunile foundation.
+- layout-ul admin impune rol + permisiune și randă starea restricted pentru non-admin.
+- migrarea 002 revocă insert/update/delete public pentru `profile_roles` și întărește `profiles`.
 
 ## Work rămas
 
-- implementarea `getProfileRoles()` și `hasRole()`;
-- integrarea helper-elor în layout-uri și acțiuni server;
-- protecția `/admin` și starea restricted;
-- întărirea RLS pentru `profiles` împotriva escaladării;
 - flux securizat de atribuire/revocare roluri;
-- reconcilierea rolurilor `individual_learner`, `organization_learner` și `organization_representative` cu schema foundation;
 - verificarea scope-urilor organization/university/program/course;
 - teste pentru ownership, cross-organization denial și platform admin;
 - audit pentru atribuiri și acțiuni administrative.

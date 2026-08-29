@@ -31,25 +31,9 @@ Rolurile nu trebuie deduse exclusiv din `profile_type`. `profile_roles`, `roles`
 
 ### Implementat acum
 
-`src/lib/auth/get-active-profile.ts` exportă `getActiveProfile()`:
+`src/lib/auth/get-user-profiles.ts` încarcă toate profilurile utilizatorului curent și numele organizațiilor vizibile prin RLS. `getActiveProfile()` citește cookie-ul preferat, acceptă numai un profil propriu cu `status = active`, apoi revine la profilul implicit sau primul profil eligibil.
 
-1. încarcă în paralel clientul Supabase de server și utilizatorul curent;
-2. interoghează `profiles` pentru `user_id = currentUser.id` și `status = active`;
-3. sortează `is_default` descrescător;
-4. returnează primul profil sau `null`.
-
-RLS din foundation permite utilizatorului autentificat să selecteze numai profilele cu propriul `user_id`.
-
-Helper-ul nu este folosit în layout-urile `/app` sau `/admin`; pagina `/app/profiles` afișează în prezent un rând static.
-
-### Obligatoriu în TASK 002
-
-- helper pentru listarea tuturor profilelor proprii active;
-- tratarea explicită a erorilor și a profilului lipsă;
-- încărcarea profilului activ în layout-ul protejat;
-- încărcarea rolurilor și scope-ului aferent profilului;
-- UI alimentat din date reale;
-- refuzul accesului la un `profileId` care nu aparține utilizatorului.
+Helper-ele sunt integrate în layout-urile `/app` și `/admin`, în dashboard și în pagina reală `/app/profiles`. Un profil lipsă/pending afișează starea localizată de cont, fără randarea datelor protejate.
 
 ## Profilul implicit
 
@@ -61,7 +45,7 @@ Migrarea `001_foundation.sql` conține triggerul `handle_new_user()`:
 - setează `label = Individual Member`;
 - setează `is_default = true` și `status = active`.
 
-Baseline-ul manager-validat folosește numele `individual_learner`. TASK 002 trebuie să decidă nomenclatura canonică și să includă o migrare compatibilă; documentația nu presupune că `individual` și `individual_learner` sunt automat echivalente.
+Migrarea 002 păstrează valoarea legacy în constraint pentru compatibilitate, migrează profilurile `individual` existente la `individual_learner` și folosește numai nomenclatura canonică pentru register-uri noi.
 
 Pentru invitații și cereri organizaționale, profilul/rolul contextual nu devine utilizabil înainte de confirmările și aprobările cerute.
 
@@ -79,11 +63,7 @@ Profilul activ nu schimbă utilizatorul Auth și nu acordă permisiuni noi.
 
 ## Unde este stocat profilul activ
 
-### Acum
-
-Nu există o selecție persistentă. `getActiveProfile()` derivă profilul activ alegând profilul activ marcat implicit, apoi primul rezultat. Topbar-ul afișează un selector vizual fără logică de schimbare.
-
-### Contract TASK 002
+### Implementare TASK 002
 
 - Selecția trebuie păstrată server-side într-o formă asociată utilizatorului și validată la fiecare request.
 - Un cookie poate păstra numai identificatorul preferat, semnat/validat și tratat ca input neîncrezător; autorizarea se verifică în baza de date.
@@ -91,7 +71,7 @@ Nu există o selecție persistentă. `getActiveProfile()` derivă profilul activ
 - Dacă selecția lipsește, este invalidă, inactivă sau nu mai aparține utilizatorului, sistemul revine la profilul implicit valid.
 - Schimbarea profilului trebuie să reîncarce rolurile, scope-ul, navigația și datele.
 
-Decizia finală cookie vs preferință în DB trebuie consemnată în acest document când TASK 002 este implementat.
+Selecția este păstrată în cookie-ul HTTP-only `trainings_pro_active_profile`. `POST /api/auth/active-profile` validează sesiunea, ownership-ul și statusul înainte să scrie cookie-ul. Cookie-ul nu este o dovadă de autorizare; fiecare request revalidează profilul prin RLS și query server-side.
 
 ## Suportul pentru profile multiple
 
@@ -100,7 +80,7 @@ Decizia finală cookie vs preferință în DB trebuie consemnată în acest docu
 - Profilurile organizaționale sunt create prin invitație/aprobare, nu liber.
 - Multi-organizație este permis pentru reprezentanți, instructori/trainers și consultanți.
 - Learners păstrează o singură organizație activă per relație de învățare.
-- UI-ul `/app/profiles` va lista profilele reale și va permite alegerea profilului activ.
+- UI-ul `/app/profiles` listează profilele reale și permite alegerea unui profil propriu activ.
 - Crearea liberă a unui profil suplimentar rămâne dezactivată până când există un flux autorizat.
 - Ierarhiile academice și managementul complet al organizațiilor rămân TASK 003.
 

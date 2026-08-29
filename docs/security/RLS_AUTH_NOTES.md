@@ -33,17 +33,15 @@ Triggerul `handle_new_user()` creează un profil individual implicit după inser
 | `getActiveProfile()` | `profiles` |
 | `hasPermission()` | `profile_roles`, `permissions`, `role_permissions` |
 
-### Necesare în TASK 002
+### Adăugate în TASK 002
 
-- starea de onboarding a contului/profilului;
-- acceptarea termenilor: versiune, sursă și dată;
-- invitații: token hash, destinatar, emitent, scope, expirare, revocare, limită de utilizări și consum;
-- cereri de reprezentant organizație;
-- aprobări/respingere și actorul care a decis;
-- audit pentru rolurile sensibile și tranzițiile de status;
-- preferința de profil activ, dacă se alege stocarea în DB.
+- starea de onboarding în `profiles.status`;
+- acceptarea termenilor: versiune și dată în `profiles`;
+- `onboarding_requests` pentru hash-ul codului de invitație și cereri de reprezentant;
+- câmpuri de review pregătite pentru actor și dată;
+- profil activ într-un cookie HTTP-only, revalidat server-side.
 
-Denumirea și forma tabelelor noi trebuie stabilite prin migrarea TASK 002. În repository nu există încă tabele de invitații sau cereri organizaționale.
+Emiterea/expirarea/revocarea invitațiilor și auditul administrativ complet rămân neimplementate. Un cod public nu acordă membership sau rol; cererea rămâne `pending_review`.
 
 ## Politicile RLS foundation
 
@@ -67,20 +65,21 @@ Denumirea și forma tabelelor noi trebuie stabilite prin migrarea TASK 002. În 
 - utilizatorul poate citi numai `profile_roles` pentru propriile profile;
 - nu există politici publice de insert/update/delete pentru `profile_roles`.
 
-## Gap critic: escaladarea prin `profiles`
+## Gap critic remediat: escaladarea prin `profiles`
 
 Politicile foundation de insert/update pe `profiles` verifică numai `auth.uid() = user_id`. Coloanele controlate de client includ în schema actuală `profile_type`, `organization_id`, `university_id`, `group_id`, `is_default` și `status`.
 
 Deoarece `profile_type` acceptă inclusiv `platform_admin`, un client autentificat ar putea încerca să insereze sau să actualizeze propriul profil cu un tip privilegiat. Chiar dacă autorizarea finală trebuie să folosească `profile_roles`, această posibilitate contrazice baseline-ul și poate produce escaladare dacă orice cod se bazează pe `profile_type`.
 
-TASK 002 nu este complet până când:
+Migrarea `002_auth_onboarding.sql` remediază gap-ul astfel:
 
-- insertul direct de profile privilegiate este interzis;
-- update-ul direct al coloanelor sensibile este interzis;
-- profilele suplimentare sunt create numai prin funcții/fluxuri autorizate;
-- `user_id` este derivat din `auth.uid()`;
-- rolurile sunt atribuite numai prin operații administrative controlate;
-- există teste negative pentru `platform_admin`, `organization_admin` și apartenență organizațională falsă.
+- revocă insert/delete public pe `profiles`;
+- limitează grantul de update la `display_name`, nume și limbă;
+- triggerul Auth creează numai `individual_learner`, indiferent de metadata suplimentară;
+- revocă mutațiile publice pe `profile_roles` și `organization_members`;
+- requesturile de invitație/reprezentant nu creează organizații, membership-uri sau roluri sensibile.
+
+Testele RLS end-to-end pe o instanță Supabase cu migrarea aplicată rămân obligatorii înainte de deployment.
 
 ## Boundary-uri de securitate
 
@@ -138,10 +137,13 @@ Codul runtime curent nu citește service role.
 
 ## Migrații TASK 002
 
-La momentul acestei documentări nu există o migrare TASK 002. Când este adăugată, această secțiune și `docs/roadmap/TASK_002_COMPLETION_NOTES.md` trebuie actualizate cu:
+`supabase/migrations/002_auth_onboarding.sql`:
 
-- numele fișierului;
-- tabelele/coloanele/funcțiile adăugate;
-- politicile înlocuite sau întărite;
-- datele migrate din nomenclatura foundation;
-- rezultatele testelor RLS.
+- adaugă nomenclatura canonică learner și migrează `individual` la `individual_learner`;
+- adaugă nume, limbă, onboarding flow, termeni și statusuri în `profiles`;
+- adaugă `onboarding_requests` cu RLS read-own și fără mutații publice;
+- înlocuiește triggerul Auth cu un flux security-definer care creează numai profil learner sigur;
+- adaugă `complete_email_onboarding()` pentru callback-ul autentificat;
+- înlocuiește politicile/granturile permisive pentru profile și revocă mutațiile publice de rol/membership.
+
+Migrarea nu a fost aplicată de această schimbare într-un proiect Supabase remote. Validarea SQL/RLS pe proiectul de test trebuie consemnată separat la deployment.

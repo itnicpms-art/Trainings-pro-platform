@@ -6,9 +6,9 @@ TASK 002 trebuie să implementeze baseline-ul manager-validat din `docs/auth/MAN
 
 ## Status
 
-**TASK 002 nu este complet la data acestei documentări.**
+**TASK 002 este implementat în cod, cu validarea remote Supabase și QA-ul autentificat end-to-end încă necesare înainte de deployment.**
 
-Fișierul este un jurnal viu de implementare. Nu trebuie schimbat la „Complet” până când auth, onboarding, profilele, rolurile, protecția rutelor, RLS și QA-ul descrise în documentele TASK 002 sunt efectiv implementate și validate.
+Fluxul de invitații este intenționat fail-closed: codul este hash-uit și cererea rămâne `pending_review`; emiterea, expirarea, revocarea și consumul automat al invitației rămân limitări cunoscute.
 
 ## Ce există înainte de TASK 002
 
@@ -25,12 +25,12 @@ Fișierul este un jurnal viu de implementare. Nu trebuie schimbat la „Complet�
 
 Aceste elemente sunt fundație parțială și nu reprezintă acceptarea TASK 002.
 
-## Ce trebuie completat în TASK 002
+## Ce a implementat TASK 002
 
 - cele trei opțiuni de register;
 - stările `active`, `pending_email_confirmation`, `pending_organization_approval`, `pending_review`;
 - confirmarea emailului și callback localizat;
-- lifecycle invitație;
+- placeholder sigur pentru invitații, fără acordare de membership/rol;
 - cerere și aprobare reprezentant;
 - logout real;
 - refresh cookie/sesiune;
@@ -42,7 +42,8 @@ Aceste elemente sunt fundație parțială și nu reprezintă acceptarea TASK 002
 - stare admin restricted;
 - întărirea RLS pentru a elimina escaladarea prin `profiles`;
 - erori și stări RO/EN;
-- teste automate și QA manual.
+- UI și erori localizate RO/EN;
+- date reale în profiles/dashboard și eliminarea numerelor statice admin.
 
 ## Migrații
 
@@ -52,15 +53,23 @@ Aceste elemente sunt fundație parțială și nu reprezintă acceptarea TASK 002
 
 ### TASK 002
 
-Nicio migrare TASK 002 nu există la data acestei documentări.
-
-La implementare, se vor lista aici exact migrarea/migrările și scopul lor. Documentația nu creează tabele sau migrații.
+- `supabase/migrations/002_auth_onboarding.sql` — nomenclatură learner, statusuri și termeni, `onboarding_requests`, trigger Auth sigur, callback email și întărirea granturilor/politicilor RLS.
 
 ## QA manual
 
 ### Rezultat curent
 
-Nu este declarat un QA manual end-to-end pentru TASK 002 deoarece fluxurile necesare nu sunt implementate complet. Nu se vor raporta ca „passed” scenarii care verifică numai randarea paginilor demonstrative.
+- `pnpm lint`: passed;
+- `pnpm build`: passed, inclusiv Proxy și cele 22 de rute generate;
+- `/ro`, `/en` și redirectul `/` → `/ro`: passed;
+- `/ro/register` și `/en/register`: passed;
+- cele trei opțiuni/formulare de onboarding RO: passed;
+- switcher RO → EN pe ruta register: passed;
+- `/ro/login` și `/en/login`: passed;
+- redirect neautentificat pentru `/ro/app`, `/en/app`, `/ro/admin`, `/en/admin`: passed, cu locale și `next` păstrate;
+- placeholder-ele `În pregătire` / `Coming soon`: passed; valorile publice interzise nu apar;
+- erori browser console în scenariile de mai sus: none;
+- QA autentificat și teste RLS: necesită aplicarea migrării 002 într-un proiect Supabase de test și conturi de test.
 
 ### Checklist necesar înainte de completare
 
@@ -91,18 +100,13 @@ Nu este declarat un QA manual end-to-end pentru TASK 002 deoarece fluxurile nece
 
 ## Limitări cunoscute curente
 
-- app/admin nu sunt protejate;
-- logout-ul din topbar este inert;
-- pagina profiles folosește date statice;
-- dashboard-urile folosesc valori demonstrative;
-- register-ul nu respectă încă cele trei fluxuri;
-- stările de onboarding nu sunt persistate;
-- invitațiile și cererile nu au tabele;
-- rolurile helper incomplete;
-- schema foundation folosește nomenclatură diferită de baseline pentru learners;
-- politicile `profiles` permit clientului prea mult control asupra coloanelor sensibile;
-- erorile Supabase sunt afișate brut;
-- nu există refresh de sesiune prin Proxy.
+- migrarea 002 trebuie aplicată și testată într-un proiect Supabase înainte de deployment;
+- nu există încă interfață/admin backend pentru emiterea, expirarea, revocarea și consumul invitațiilor;
+- codurile de invitație rămân fail-closed în `pending_review` și nu acordă membership;
+- aprobarea/rejectarea cererilor de reprezentant nu are încă UI administrativ;
+- fluxul securizat de creare/atribuire/revocare `platform_admin` rămâne operație administrativă manuală;
+- testele automate RLS/cross-organization și auditul rolurilor sensibile rămân de adăugat;
+- managementul complet al organizațiilor și ierarhiilor academice rămâne TASK 003.
 
 ## Ce rămâne pentru TASK 002.5
 

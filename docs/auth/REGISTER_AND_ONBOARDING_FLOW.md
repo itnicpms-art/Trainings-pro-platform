@@ -6,16 +6,13 @@ Fluxurile descrise aici implementează `docs/auth/MANAGER_VALIDATED_ONBOARDING_C
 
 ## Starea curentă
 
-Înainte de TASK 002 există un singur formular generic de register în `src/components/auth/auth-form.tsx`:
+`src/components/auth/register-form.tsx` afișează cele trei opțiuni și formularele lor localizate. Toate folosesc Supabase Auth, iar triggerul securizat din migrarea `002_auth_onboarding.sql` ignoră orice tentativă de rol sau organizație privilegiată transmisă prin metadata.
 
-- colectează `fullName`, `email` și `password`;
-- apelează `supabase.auth.signUp()`;
-- trimite `full_name` în user metadata;
-- configurează `emailRedirectTo` către `/{locale}/app`;
-- afișează mesajul Supabase brut la eroare;
-- navighează către `/{locale}/app` după un răspuns fără eroare.
-
-Acest formular nu implementează încă opțiunile de onboarding, termenii, limba preferată, codurile de invitație, cererea de reprezentant sau stările de mai jos.
+- contul individual creează un profil canonic `individual_learner`;
+- invitația creează o cerere cu hash-ul codului și status pending, fără membership;
+- reprezentantul creează o cerere pending, fără organizație, rol sau acces admin;
+- termenii, versiunea lor, limba și data acceptării sunt persistate;
+- erorile Auth sunt mapate la mesaje RO/EN fără afișarea mesajelor brute.
 
 ## Modelul de stare cerut de TASK 002
 
@@ -26,7 +23,7 @@ Acest formular nu implementează încă opțiunile de onboarding, termenii, limb
 | `pending_organization_approval` | Email confirmat; cererea de reprezentant așteaptă aprobarea `platform_admin` | Nu la date organizaționale |
 | `pending_review` | Invitația, apartenența sau cererea necesită verificare manuală înainte de activare | Nu la resursa solicitată |
 
-Persistența exactă a acestor stări trebuie introdusă prin migrarea TASK 002. Stările nu există în migrarea `001_foundation.sql` și nu trebuie simulate numai în UI.
+Stările sunt persistate în `profiles.status` și, pentru invitații/reprezentanți, în `onboarding_requests.status` prin migrarea `002_auth_onboarding.sql`.
 
 ## Opțiunea 1 — Cont individual
 
@@ -65,13 +62,13 @@ Organizația, grupul, cursul, programul și rolul nu sunt câmpuri libere. Ele p
 
 ### Procesare
 
-1. Se validează tokenul server-side: existență, expirare, revocare, utilizări permise și destinatar.
-2. Se creează sau se leagă utilizatorul Auth fără a acorda un rol din payload-ul clientului.
-3. Se setează `pending_email_confirmation`; confirmarea emailului este obligatorie.
-4. După confirmare, invitația se consumă atomic.
-5. Dacă toate regulile se validează automat, relația/profilul devine `active`.
-6. Dacă există ambiguitate sau este necesară verificare umană, relația intră în `pending_review`.
-7. Linkurile single-use devin invalide după consum; codurile `multi-use` trebuie marcate explicit.
+1. Se creează utilizatorul Auth fără rol sau organizație din payload-ul clientului.
+2. Codul este normalizat de trigger și persistat numai ca SHA-256 hash.
+3. Se creează `onboarding_requests` cu `pending_email_confirmation` sau `pending_review`.
+4. Nu se creează membership și nu se atribuie rol organizațional.
+5. După confirmarea emailului, callback-ul mută cererea în `pending_review`.
+
+Validarea completă a invitațiilor emise, expirării, revocării și consumului atomic este limitarea cunoscută a acestei etape. Până la backend-ul administrativ corespunzător, toate codurile rămân în verificare manuală și nu acordă acces.
 
 Invitațiile expiră implicit după 14 zile și pot fi revocate de emitent. Implementarea tabelelor de invitații și a administrării lor rămâne în TASK 002/TASK 003 conform limitei de mai jos.
 

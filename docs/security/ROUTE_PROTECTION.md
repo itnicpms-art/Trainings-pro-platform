@@ -17,11 +17,12 @@ Următoarele rute și toți descendenții lor sunt protejați:
 
 ## Starea curentă
 
-- Nu există `src/proxy.ts`.
-- Layout-urile `src/app/[locale]/app/layout.tsx` și `src/app/[locale]/admin/layout.tsx` nu apelează `getCurrentUser()`.
-- Layout-ul admin nu verifică `platform_admin` sau `admin.access`.
-- Orice vizitator poate reda UI-ul app/admin dacă deschide ruta direct.
-- Pagina afișează date demonstrative hardcodate, nu date private, dar comportamentul nu este protecția cerută de TASK 002.
+- `src/proxy.ts` reîmprospătează sesiunea și redirecționează lipsa utilizatorului validat.
+- Layout-urile app/admin repetă `getCurrentUser()` înainte de randare.
+- Layout-ul app cere un profil propriu cu status `active`; statusurile pending primesc o stare dedicată.
+- Layout-ul admin cere rolul `platform_admin` și permisiunea `admin.access` în scope platform.
+- Non-admin vede starea restricted localizată, fără conținut admin.
+- Route Handlers pentru logout și profil activ verifică origin/sesiune/ownership după caz.
 
 ## Contractul de protecție TASK 002
 

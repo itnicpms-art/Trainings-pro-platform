@@ -6,23 +6,23 @@ TASK 002 urmează regulile validate în `docs/auth/MANAGER_VALIDATED_ONBOARDING_
 
 ## Starea curentă
 
-Repository-ul conține o fundație de autentificare creată înainte de TASK 002, nu o implementare TASK 002 completă.
+Repository-ul conține acum implementarea runtime TASK 002. Migrarea trebuie aplicată proiectului Supabase țintă înainte ca fluxurile să fie validate end-to-end.
 
 | Capabilitate | Stare curentă |
 |---|---|
 | Client Supabase pentru browser | Implementat |
 | Client Supabase pentru server | Implementat |
-| Register email/parolă simplu | Implementat parțial |
-| Login email/parolă | Implementat parțial |
+| Register cu trei opțiuni | Implementat |
+| Login email/parolă | Implementat |
 | Citirea utilizatorului curent pe server | Implementat |
-| Încărcarea unui profil implicit | Helper implementat, neintegrat în UI/layout |
-| Verificarea unei permisiuni | Helper implementat, neintegrat în protecția rutelor |
-| Logout | Neimplementat |
-| Reîmprospătarea sesiunii prin Proxy | Neimplementat |
-| Protecția `/app` și `/admin` | Neimplementată |
-| Cele trei fluxuri de onboarding | Neimplementate |
-| Stările de onboarding aprobate | Neimplementate |
-| Verificarea `platform_admin` | Neimplementată |
+| Încărcarea profilurilor și profilului activ | Implementat și integrat |
+| Verificarea rolurilor și permisiunilor | Implementat și integrat în admin |
+| Logout | Implementat prin Route Handler |
+| Reîmprospătarea sesiunii prin Proxy | Implementat |
+| Protecția `/app` și `/admin` | Implementată în Proxy și layout-uri |
+| Cele trei fluxuri de onboarding | Implementate; invitațiile rămân în verificare manuală |
+| Stările de onboarding aprobate | Persistate prin migrarea 002 |
+| Verificarea `platform_admin` | Implementată prin rol + `admin.access` |
 
 ## Configurarea Supabase Auth folosită de aplicație
 
@@ -55,7 +55,7 @@ Aplicația folosește:
 - Încearcă să scrie cookie-urile actualizate; excepția este ignorată în contexte Server Component care nu permit scrierea.
 - Returnează `null` când configurația publică Supabase lipsește.
 
-TASK 002 trebuie să adauge mecanismul de refresh al cookie-urilor în `src/proxy.ts`. În Next.js 16, Proxy poate face verificări optimiste și refresh de sesiune, dar autorizarea finală trebuie repetată în layout-uri, Server Components, Server Actions/Route Handlers și prin RLS.
+`src/proxy.ts` reîmprospătează cookie-urile Supabase și redirecționează optimist vizitatorii neautentificați. Autorizarea finală este repetată în layout-uri, Route Handlers și prin RLS.
 
 ## Utilizatorul curent și sesiunea
 
@@ -65,7 +65,7 @@ TASK 002 trebuie să adauge mecanismul de refresh al cookie-urilor în `src/prox
 - Apelează `supabase.auth.getUser()`.
 - Returnează utilizatorul validat de Supabase sau `null` la lipsa configurației/eroare.
 
-Nu există în prezent un helper public pentru încărcarea sesiunii și nu există un listener global de auth. Pentru decizii de securitate, codul trebuie să se bazeze pe `getUser()`/identitatea validată, nu numai pe conținutul neverificat al unei sesiuni locale.
+`src/lib/auth/get-current-session.ts` expune `getCurrentSession()` pentru cazuri care au nevoie de datele sesiunii. Deciziile de securitate continuă să folosească `getCurrentUser()`/`auth.getUser()`, nu numai conținutul sesiunii locale.
 
 Formularul client primește rezultatul Auth direct de la Supabase, apoi navighează cu `router.push()` și `router.refresh()`. Layout-urile nu citesc încă utilizatorul sau sesiunea.
 
@@ -80,8 +80,10 @@ Formularul client primește rezultatul Auth direct de la Supabase, apoi navighea
 | Permisiuni | `src/lib/permissions/has-permission.ts` |
 | UI login/register curent | `src/components/auth/auth-form.tsx`, `src/components/auth/auth-shell.tsx` |
 | Rute login/register | `src/app/[locale]/login/page.tsx`, `src/app/[locale]/register/page.tsx` |
-| Protecție optimistă și refresh cookie | `src/proxy.ts` — de adăugat în TASK 002 |
-| Acțiuni register/login/logout | De separat în module auth dedicate în TASK 002 |
+| Protecție optimistă și refresh cookie | `src/proxy.ts` |
+| Callback email | `src/app/[locale]/auth/callback/route.ts` |
+| Logout | `src/app/api/auth/logout/route.ts` |
+| Selectare profil activ | `src/app/api/auth/active-profile/route.ts` |
 
 ## Reguli de securitate
 
@@ -107,18 +109,18 @@ Formularul client primește rezultatul Auth direct de la Supabase, apoi navighea
 - tabelele foundation pentru profiles, roles și permissions;
 - politici RLS foundation de bază.
 
-### Obligatoriu în TASK 002
+### Implementat în TASK 002
 
-- cele trei fluxuri de register și stările lor;
-- confirmarea emailului conform tipului de flux;
-- logout real;
+- cele trei fluxuri de register și stările lor sigure;
+- callback localizat pentru confirmarea emailului;
+- logout real și invalidarea cookie-ului de profil activ;
 - refresh cookie și protecția rutelor;
 - încărcarea contului/profilului în layout-uri;
-- `getProfileRoles()` și `hasRole()`;
+- `getUserProfiles()`, `getProfileRoles()` și `hasRole()`;
 - controlul `platform_admin` și starea admin restricted;
-- corectarea politicilor de escaladare din `profiles`;
+- blocarea escaladării prin `profiles` și roluri;
 - erori RO/EN controlate;
-- integrarea UI cu date reale, fără carduri hardcodate.
+- pagina profiles și dashboard-ul membrului alimentate din date reale.
 
 ### Amânat după TASK 002
 

@@ -1,10 +1,17 @@
-import { getCurrentUser } from "@/lib/auth/get-current-user";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { TableRow } from "@/types/database";
+import { cookies } from "next/headers";
 
-export async function getActiveProfile(): Promise<TableRow<"profiles"> | null> {
-  const [supabase, user] = await Promise.all([createServerSupabaseClient(), getCurrentUser()]);
-  if (!supabase || !user) return null;
-  const { data, error } = await supabase.from("profiles").select("*").eq("user_id", user.id).eq("status", "active").order("is_default", { ascending: false }).limit(1).maybeSingle();
-  return error ? null : data;
+import { activeProfileCookieName } from "@/lib/auth/constants";
+import { getUserProfiles, type UserProfile } from "@/lib/auth/get-user-profiles";
+
+export async function getActiveProfile(): Promise<UserProfile | null> {
+  const [cookieStore, profiles] = await Promise.all([cookies(), getUserProfiles()]);
+  const eligibleProfiles = profiles.filter((profile) => profile.status === "active");
+  const requestedProfileId = cookieStore.get(activeProfileCookieName)?.value;
+
+  if (requestedProfileId) {
+    const requestedProfile = eligibleProfiles.find((profile) => profile.id === requestedProfileId);
+    if (requestedProfile) return requestedProfile;
+  }
+
+  return eligibleProfiles.find((profile) => profile.is_default) ?? eligibleProfiles[0] ?? null;
 }
