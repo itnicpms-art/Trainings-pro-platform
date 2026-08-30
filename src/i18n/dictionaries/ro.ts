@@ -199,7 +199,7 @@ const ro = {
     notifications: "Notificări",
     platformAdmin: "Administrator platformă",
     myAccount: "Contul meu",
-    switchProfile: "Schimbă profilul",
+    switchProfile: "Schimbă profilul activ",
     preferences: "Preferințe",
     logout: "Deconectare",
     close: "Închide",

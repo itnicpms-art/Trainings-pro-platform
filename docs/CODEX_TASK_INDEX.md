@@ -8,6 +8,7 @@
 | 001.9 | `auth/MANAGER_VALIDATED_ONBOARDING_CMS_RULES.md` | Reguli validate pentru onboarding, invitații, organizații, RBAC, confidențialitate și domeniul CMS viitor |
 | 002 | `TASK-002-auth-users-profiles-roles.md` | Auth, profile multiple, active profile, permissions helper |
 | 002.1 | `TASK-002-1-adaptive-dashboard-shell.md` | Dashboard shell adaptiv după profil activ și rol, fără date demonstrative |
+| 002.2 | `testing/QA_PROFILES_SEED.md` | Seed local/staging securizat pentru verificarea variantelor de dashboard după profil și rol |
 | 003 | `TASK-003-organizations-universities-academic.md` | Organizații, universități, programe, years, semesters, groups |
 | 004 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
@@ -37,6 +38,13 @@ TASK 002 folosește baseline-ul validat în `docs/auth/MANAGER_VALIDATED_ONBOARD
 - `docs/roadmap/TASK_002_1_COMPLETION_NOTES.md` — fișiere, validări, QA și funcționalitatea amânată.
 
 TASK 002.1 nu adaugă backend-uri educaționale, schemă, migrare sau politici RLS. Cardurile și navigația viitoare folosesc exclusiv empty states și marcajele `În pregătire` / `Coming soon` până când task-urile dedicate furnizează date reale.
+
+## Documentație TASK 002.2
+
+- `docs/testing/QA_PROFILES_SEED.md` — configurare sigură, date QA create, matrice profil/rol, idempotency și pașii de QA manual;
+- `docs/roadmap/TASK_002_2_COMPLETION_NOTES.md` — scop, fișiere, validări, limitări și confirmările de securitate.
+
+TASK 002.2 este exclusiv un instrument operator local/staging. Nu expune cheia service-role în aplicație, nu schimbă înregistrarea publică sau RLS și nu creează date educaționale demonstrative.
 
 ## Reguli de execuție
 

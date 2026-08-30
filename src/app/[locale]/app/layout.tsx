@@ -24,6 +24,17 @@ export default async function AppLayout({ children, params }: { children: ReactN
   const activeStatus = dictionary.app.profiles.statuses[activeProfile.status] ?? dictionary.shell.active;
 
   const dashboardVariant = dashboardContext.variant ?? "individualLearner";
+  const profileOptions = profiles.filter((profile) => profile.status === "active").map((profile) => ({
+    id: profile.id,
+    displayName: profile.display_name,
+    label: dictionary.app.profiles.profileTypes[profile.profile_type] ?? profile.label ?? dictionary.shell.memberRole,
+  }));
+  const profileSwitcherTranslations = {
+    selected: dictionary.app.profiles.selected,
+    selecting: dictionary.app.profiles.selecting,
+    selectionSuccess: dictionary.app.profiles.selectionSuccess,
+    selectionFailed: dictionary.app.profiles.selectionFailed,
+  };
 
-  return <div className="min-h-screen bg-slate-50"><aside className="fixed inset-y-0 left-0 z-40 hidden w-64 lg:block"><AppSidebar locale={locale} translations={dictionary.shell} dashboardTranslations={dictionary.app.dashboardShell} dashboardVariant={dashboardVariant} activeProfileName={activeProfile.display_name} activeProfileStatus={activeStatus} /></aside><div className="lg:pl-64"><Topbar area="app" title="Trainings PRO" locale={locale} translations={dictionary.shell} dashboardTranslations={dictionary.app.dashboardShell} dashboardVariant={dashboardVariant} languageLabel={dictionary.language.label} accountName={activeProfile.display_name || user.email || "Trainings PRO"} profileLabel={profileLabel} activeProfileName={activeProfile.display_name} activeProfileStatus={activeStatus} /><main className="p-3 sm:p-4 lg:p-5">{children}</main></div></div>;
+  return <div className="min-h-screen bg-slate-50"><aside className="fixed inset-y-0 left-0 z-40 hidden w-64 lg:block"><AppSidebar locale={locale} translations={dictionary.shell} dashboardTranslations={dictionary.app.dashboardShell} dashboardVariant={dashboardVariant} activeProfileName={activeProfile.display_name} activeProfileStatus={activeStatus} /></aside><div className="lg:pl-64"><Topbar area="app" title="Trainings PRO" locale={locale} translations={dictionary.shell} dashboardTranslations={dictionary.app.dashboardShell} dashboardVariant={dashboardVariant} languageLabel={dictionary.language.label} accountName={activeProfile.display_name || user.email || "Trainings PRO"} profileLabel={profileLabel} activeProfileId={activeProfile.id} activeProfileName={activeProfile.display_name} activeProfileStatus={activeStatus} profiles={profileOptions} profileSwitcherTranslations={profileSwitcherTranslations} /><main className="p-3 sm:p-4 lg:p-5">{children}</main></div></div>;
 }

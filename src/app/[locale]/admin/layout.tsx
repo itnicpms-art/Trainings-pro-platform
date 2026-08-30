@@ -31,5 +31,17 @@ export default async function AdminLayout({ children, params }: { children: Reac
     return <AdminRestrictedState locale={locale} languageLabel={dictionary.language.label} logoutLabel={dictionary.shell.logout} translations={dictionary.admin.restricted} />;
   }
 
-  return <div className="min-h-screen bg-slate-50"><aside className="fixed inset-y-0 left-0 z-40 hidden w-64 lg:block"><AdminSidebar locale={locale} translations={dictionary.shell} /></aside><div className="lg:pl-64"><Topbar area="admin" title={dictionary.shell.platformControl} locale={locale} translations={dictionary.shell} languageLabel={dictionary.language.label} accountName={activeProfile.display_name || user.email || "Trainings PRO"} profileLabel={dictionary.shell.platformAdmin} activeProfileName={activeProfile.display_name} activeProfileStatus={dictionary.shell.active} /><main className="p-4 sm:p-6 lg:p-8">{children}</main></div></div>;
+  const profileOptions = profiles.filter((profile) => profile.status === "active").map((profile) => ({
+    id: profile.id,
+    displayName: profile.display_name,
+    label: dictionary.app.profiles.profileTypes[profile.profile_type] ?? profile.label ?? dictionary.shell.memberRole,
+  }));
+  const profileSwitcherTranslations = {
+    selected: dictionary.app.profiles.selected,
+    selecting: dictionary.app.profiles.selecting,
+    selectionSuccess: dictionary.app.profiles.selectionSuccess,
+    selectionFailed: dictionary.app.profiles.selectionFailed,
+  };
+
+  return <div className="min-h-screen bg-slate-50"><aside className="fixed inset-y-0 left-0 z-40 hidden w-64 lg:block"><AdminSidebar locale={locale} translations={dictionary.shell} /></aside><div className="lg:pl-64"><Topbar area="admin" title={dictionary.shell.platformControl} locale={locale} translations={dictionary.shell} languageLabel={dictionary.language.label} accountName={activeProfile.display_name || user.email || "Trainings PRO"} profileLabel={dictionary.shell.platformAdmin} activeProfileId={activeProfile.id} activeProfileName={activeProfile.display_name} activeProfileStatus={dictionary.shell.active} profiles={profileOptions} profileSwitcherTranslations={profileSwitcherTranslations} /><main className="p-4 sm:p-6 lg:p-8">{children}</main></div></div>;
 }
