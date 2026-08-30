@@ -201,7 +201,7 @@ const en: Dictionary = {
     notifications: "Notifications",
     platformAdmin: "Platform Admin",
     myAccount: "My account",
-    switchProfile: "Switch profile",
+    switchProfile: "Switch active profile",
     preferences: "Preferences",
     logout: "Log out",
     close: "Close",

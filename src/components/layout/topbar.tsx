@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LoaderCircle, Menu } from "lucide-react";
+import { Bell, Check, ChevronDown, LoaderCircle, Menu } from "lucide-react";
+import { toast } from "sonner";
 
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -15,17 +16,53 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
 import type { DashboardVariant } from "@/lib/dashboard/dashboard-config";
 
-type TopbarProps = { area: "app" | "admin"; title: string; locale: Locale; translations: Dictionary["shell"]; dashboardTranslations?: Dictionary["app"]["dashboardShell"]; dashboardVariant?: DashboardVariant; languageLabel: string; accountName: string; profileLabel: string; activeProfileName: string; activeProfileStatus: string };
+type ProfileSwitcherOption = {
+  id: string;
+  displayName: string;
+  label: string;
+};
 
-export function Topbar({ area, title, locale, translations: t, dashboardTranslations, dashboardVariant, languageLabel, accountName, profileLabel, activeProfileName, activeProfileStatus }: TopbarProps) {
+type ProfileSwitcherTranslations = Pick<Dictionary["app"]["profiles"], "selected" | "selecting" | "selectionSuccess" | "selectionFailed">;
+
+type TopbarProps = {
+  area: "app" | "admin";
+  title: string;
+  locale: Locale;
+  translations: Dictionary["shell"];
+  dashboardTranslations?: Dictionary["app"]["dashboardShell"];
+  dashboardVariant?: DashboardVariant;
+  languageLabel: string;
+  accountName: string;
+  profileLabel: string;
+  activeProfileId: string;
+  activeProfileName: string;
+  activeProfileStatus: string;
+  profiles: ProfileSwitcherOption[];
+  profileSwitcherTranslations: ProfileSwitcherTranslations;
+};
+
+export function Topbar({ area, title, locale, translations: t, dashboardTranslations, dashboardVariant, languageLabel, accountName, profileLabel, activeProfileId, activeProfileName, activeProfileStatus, profiles, profileSwitcherTranslations: switcherT }: TopbarProps) {
   const router = useRouter();
-  const [loggingOut, setLoggingOut] = useState(false);
+  const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
   const initials = accountName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "TP";
 
-  async function handleLogout() {
-    setLoggingOut(true);
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
-    router.replace(`/${locale}/login`);
+  async function selectProfile(profileId: string) {
+    if (profileId === activeProfileId || pendingProfileId) return;
+
+    setPendingProfileId(profileId);
+    const response = await fetch("/api/auth/active-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profileId }),
+    }).catch(() => null);
+    setPendingProfileId(null);
+
+    if (!response?.ok) {
+      toast.error(switcherT.selectionFailed);
+      return;
+    }
+
+    toast.success(switcherT.selectionSuccess);
     router.refresh();
   }
 
@@ -42,12 +79,35 @@ export function Topbar({ area, title, locale, translations: t, dashboardTranslat
         <LanguageSwitcher locale={locale} label={languageLabel} />
         <Button variant="ghost" size="icon" aria-label={t.notifications}><Bell /></Button>
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl p-1.5 text-left hover:bg-slate-50">
+          <DropdownMenuTrigger aria-label={t.switchProfile} className="flex items-center gap-2 rounded-xl p-1.5 text-left hover:bg-slate-50">
             <Avatar><AvatarFallback className="bg-blue-100 font-semibold text-blue-700">{initials}</AvatarFallback></Avatar>
             <div className="hidden sm:block"><p className="max-w-40 truncate text-sm font-semibold text-[#06113B]">{accountName}</p><p className="max-w-40 truncate text-xs text-slate-500">{profileLabel}</p></div>
             <ChevronDown className="hidden size-4 text-slate-400 sm:block" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52"><DropdownMenuLabel>{t.myAccount}</DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem onClick={() => router.push(`/${locale}/app/profiles`)}>{t.switchProfile}</DropdownMenuItem><DropdownMenuItem onClick={() => router.push(`/${locale}/app/settings`)}>{t.preferences}</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onClick={handleLogout} disabled={loggingOut}>{loggingOut && <LoaderCircle className="animate-spin" />}{t.logout}</DropdownMenuItem></DropdownMenuContent>
+          <DropdownMenuContent align="end" className="max-h-80 w-72 overflow-y-auto">
+            <DropdownMenuLabel>{t.activeProfile}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {profiles.map((profile) => {
+              const selected = profile.id === activeProfileId;
+              const pending = profile.id === pendingProfileId;
+
+              return (
+                <DropdownMenuItem
+                  key={profile.id}
+                  aria-current={selected ? "true" : undefined}
+                  className={selected ? "bg-blue-50" : undefined}
+                  disabled={Boolean(pendingProfileId)}
+                  onClick={selected ? undefined : () => void selectProfile(profile.id)}
+                >
+                  <div className="min-w-0 flex-1 py-0.5">
+                    <p className="truncate font-medium">{profile.displayName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{profile.label}</p>
+                  </div>
+                  {pending ? <><LoaderCircle className="animate-spin" /><span className="sr-only">{switcherT.selecting}</span></> : selected ? <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-blue-700"><Check />{switcherT.selected}</span> : null}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </header>
