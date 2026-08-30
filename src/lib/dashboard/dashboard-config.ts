@@ -135,12 +135,101 @@ export const dashboardVariants: Record<DashboardVariant, VariantConfig> = {
   },
 };
 
+const organizationModuleKeys = new Set<DashboardModuleKey>(["organizations", "organization", "university"]);
+
+function isPersonalLearnerProfile(profile: UserProfile) {
+  return (
+    (profile.profile_type === "individual" || profile.profile_type === "individual_learner")
+    && !profile.organization_id
+    && !profile.university_id
+  );
+}
+
+function sharesOrganizationContext(profile: UserProfile, activeProfile: UserProfile) {
+  return Boolean(activeProfile.organization_id && profile.organization_id === activeProfile.organization_id);
+}
+
+function sharesUniversityContext(profile: UserProfile, activeProfile: UserProfile) {
+  const universityId = activeProfile.university_id ?? activeProfile.organization_id;
+  return Boolean(universityId && (profile.university_id === universityId || profile.organization_id === universityId));
+}
+
+function sharesProfessionalContext(profile: UserProfile, activeProfile: UserProfile) {
+  if (activeProfile.university_id) return sharesUniversityContext(profile, activeProfile);
+  return sharesOrganizationContext(profile, activeProfile);
+}
+
+export function isDashboardOrganizationModule(moduleKey: DashboardModuleKey) {
+  return organizationModuleKeys.has(moduleKey);
+}
+
 export function shouldShowDashboardOrganization(
   variant: DashboardVariant,
   organizationId: string | null,
-  organizationCount: number,
+  universityId: string | null,
 ) {
-  return variant !== "individualLearner" || Boolean(organizationId) || organizationCount > 0;
+  return variant === "platformAdmin" || Boolean(organizationId || universityId);
+}
+
+export function getScopedOrganizationCount(
+  profiles: UserProfile[],
+  activeProfile: UserProfile,
+  variant: DashboardVariant,
+) {
+  const activeProfiles = profiles.filter((profile) => profile.status === "active");
+  if (variant === "platformAdmin") {
+    return new Set(
+      activeProfiles.flatMap((profile) => [profile.organization_id, profile.university_id]).filter((id): id is string => Boolean(id)),
+    ).size;
+  }
+
+  return shouldShowDashboardOrganization(variant, activeProfile.organization_id, activeProfile.university_id) ? 1 : 0;
+}
+
+export function getScopedActiveProfileCount(
+  profiles: UserProfile[],
+  activeProfile: UserProfile,
+  variant: DashboardVariant,
+) {
+  const activeProfiles = profiles.filter((profile) => profile.status === "active");
+  if (variant === "platformAdmin") return activeProfiles.length;
+
+  const scopedProfiles = activeProfiles.filter((profile) => {
+    if (profile.id === activeProfile.id) return true;
+
+    switch (variant) {
+      case "individualLearner":
+        if (activeProfile.organization_id || activeProfile.university_id) {
+          return (
+            profile.profile_type === "individual"
+            || profile.profile_type === "individual_learner"
+          ) && sharesProfessionalContext(profile, activeProfile);
+        }
+        return isPersonalLearnerProfile(profile);
+      case "organizationLearner":
+        return isPersonalLearnerProfile(profile)
+          || (profile.profile_type === "organization_learner" && sharesOrganizationContext(profile, activeProfile));
+      case "academicStudent":
+        return isPersonalLearnerProfile(profile)
+          || (profile.profile_type === "student" && sharesUniversityContext(profile, activeProfile));
+      case "consultant":
+        return profile.profile_type === "consultant"
+          && sharesProfessionalContext(profile, activeProfile);
+      case "instructorTrainer":
+        return sharesProfessionalContext(profile, activeProfile);
+      case "professor":
+      case "coordinator":
+      case "universityAdmin":
+        return sharesUniversityContext(profile, activeProfile);
+      case "organizationRepresentative":
+      case "organizationAdmin":
+        return sharesOrganizationContext(profile, activeProfile);
+      default:
+        return false;
+    }
+  });
+
+  return scopedProfiles.length;
 }
 
 export function deriveDashboardVariant(

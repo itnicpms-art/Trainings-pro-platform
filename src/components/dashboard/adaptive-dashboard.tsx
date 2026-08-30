@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
 import type { UserProfile } from "@/lib/auth/get-user-profiles";
-import { dashboardVariants, shouldShowDashboardOrganization, type DashboardModuleKey, type DashboardVariant } from "@/lib/dashboard/dashboard-config";
+import { dashboardVariants, isDashboardOrganizationModule, type DashboardModuleKey, type DashboardVariant } from "@/lib/dashboard/dashboard-config";
 
 type AdaptiveDashboardProps = {
   locale: Locale;
@@ -20,6 +20,7 @@ type AdaptiveDashboardProps = {
   statusLabel: string;
   activeProfileCount: number;
   organizationCount: number;
+  showOrganizationContext: boolean;
   hasAcademicContext: boolean;
   canAccessPlatformAdmin: boolean;
 };
@@ -33,15 +34,26 @@ export function AdaptiveDashboard({
   statusLabel,
   activeProfileCount,
   organizationCount,
+  showOrganizationContext,
   hasAcademicContext,
   canAccessPlatformAdmin,
 }: AdaptiveDashboardProps) {
   const config = dashboardVariants[variant];
   const variantText = t.variants[variant];
-  const showOrganization = shouldShowDashboardOrganization(variant, profile.organization_id, organizationCount);
-  const visibleModules = showOrganization ? config.modules : config.modules.filter((moduleKey) => moduleKey !== "organizations");
+  const visibleModules = showOrganizationContext ? config.modules : config.modules.filter((moduleKey) => !isDashboardOrganizationModule(moduleKey));
   const firstModule = visibleModules[0];
-  const summaryModules = visibleModules.slice(0, showOrganization ? 2 : 3);
+  const summaryModules = visibleModules.slice(0, showOrganizationContext ? 2 : 3);
+  const organizationLabel = (() => {
+    if (variant === "academicStudent" || variant === "professor") return t.universityContext;
+    if (variant === "coordinator") return t.academicContext;
+    if (variant === "universityAdmin") return t.managedUniversity;
+    if (variant === "platformAdmin") return t.organizations;
+    return t.organizationContext;
+  })();
+  const moduleTitle = (moduleKey: DashboardModuleKey) => {
+    if (moduleKey === "university" && variant === "universityAdmin") return t.academicStructure;
+    return t.modules[moduleKey].title;
+  };
   const contextualValue = (moduleKey: DashboardModuleKey) => {
     if ((moduleKey === "organization" || moduleKey === "university") && profile.organizationName) return profile.organizationName;
     if (moduleKey === "representativeStatus") return statusLabel;
@@ -52,8 +64,8 @@ export function AdaptiveDashboard({
 
   const stats = [
     { label: t.activeProfiles, value: String(activeProfileCount), note: t.realAccountData, icon: UsersRound, tone: "bg-blue-100 text-blue-700" },
-    ...(showOrganization ? [{ label: t.organizations, value: String(organizationCount), note: t.realAccountData, icon: Building2, tone: "bg-violet-100 text-violet-700" }] : []),
-    ...summaryModules.map((moduleKey) => ({ label: t.modules[moduleKey].title, value: "0", note: t.comingSoon, icon: dashboardModuleMeta[moduleKey].icon, tone: dashboardModuleMeta[moduleKey].tone })),
+    ...(showOrganizationContext ? [{ label: organizationLabel, value: String(organizationCount), note: t.realAccountData, icon: Building2, tone: "bg-violet-100 text-violet-700" }] : []),
+    ...summaryModules.map((moduleKey) => ({ label: moduleTitle(moduleKey), value: "0", note: t.comingSoon, icon: dashboardModuleMeta[moduleKey].icon, tone: dashboardModuleMeta[moduleKey].tone })),
   ];
 
   return (
@@ -69,7 +81,7 @@ export function AdaptiveDashboard({
         guardrailLabel={t.guardrailLabel}
         guardrail={variantText.guardrail}
         organizationName={profile.organizationName}
-        organizationLabel={t.organizationContext}
+        organizationLabel={organizationLabel}
         accent={config.accent}
       />
 
@@ -87,7 +99,7 @@ export function AdaptiveDashboard({
             {visibleModules.map((moduleKey) => {
               const meta = dashboardModuleMeta[moduleKey];
               const copy = t.modules[moduleKey];
-              return <DashboardSectionCard key={moduleKey} moduleKey={moduleKey} title={copy.title} message={copy.empty} comingSoon={t.comingSoon} value={contextualValue(moduleKey)} icon={meta.icon} tone={meta.tone} />;
+              return <DashboardSectionCard key={moduleKey} moduleKey={moduleKey} title={moduleTitle(moduleKey)} message={copy.empty} comingSoon={t.comingSoon} value={contextualValue(moduleKey)} icon={meta.icon} tone={meta.tone} />;
             })}
           </div>
         </section>

@@ -2,14 +2,18 @@ import { cache } from "react";
 
 import { getActiveProfile } from "@/lib/auth/get-active-profile";
 import { getUserProfiles } from "@/lib/auth/get-user-profiles";
-import { deriveDashboardVariant } from "@/lib/dashboard/dashboard-config";
+import {
+  deriveDashboardVariant,
+  getScopedActiveProfileCount,
+  getScopedOrganizationCount,
+  shouldShowDashboardOrganization,
+} from "@/lib/dashboard/dashboard-config";
 import { getProfileRoles } from "@/lib/permissions/get-profile-roles";
 import { hasPermission } from "@/lib/permissions/has-permission";
 
 export const getDashboardContext = cache(async () => {
   const [profiles, activeProfile] = await Promise.all([getUserProfiles(), getActiveProfile()]);
   const activeProfiles = profiles.filter((profile) => profile.status === "active");
-  const organizationCount = new Set(activeProfiles.map((profile) => profile.organization_id).filter(Boolean)).size;
 
   if (!activeProfile) {
     return {
@@ -19,8 +23,9 @@ export const getDashboardContext = cache(async () => {
       roleCodes: new Set<string>(),
       canAccessPlatformAdmin: false,
       variant: null,
-      activeProfileCount: activeProfiles.length,
-      organizationCount,
+      activeProfileCount: 0,
+      organizationCount: 0,
+      showOrganizationContext: false,
       hasAcademicContext: false,
     };
   }
@@ -30,6 +35,7 @@ export const getDashboardContext = cache(async () => {
     hasPermission(activeProfile.id, "admin.access", { scopeType: "platform", scopeId: null }),
   ]);
   const roleCodes = new Set(roles.map((role) => role.code));
+  const variant = deriveDashboardVariant(activeProfile, roleCodes, canAccessPlatformAdmin);
 
   return {
     profiles,
@@ -37,9 +43,10 @@ export const getDashboardContext = cache(async () => {
     roles,
     roleCodes,
     canAccessPlatformAdmin,
-    variant: deriveDashboardVariant(activeProfile, roleCodes, canAccessPlatformAdmin),
-    activeProfileCount: activeProfiles.length,
-    organizationCount,
+    variant,
+    activeProfileCount: getScopedActiveProfileCount(activeProfiles, activeProfile, variant),
+    organizationCount: getScopedOrganizationCount(activeProfiles, activeProfile, variant),
+    showOrganizationContext: shouldShowDashboardOrganization(variant, activeProfile.organization_id, activeProfile.university_id),
     hasAcademicContext: Boolean(activeProfile.university_id || activeProfile.academic_program_id || activeProfile.group_id),
   };
 });
