@@ -1,17 +1,24 @@
 import { Badge } from "@/components/ui/badge";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
 import { dashboardModuleMeta } from "@/components/dashboard/dashboard-module-meta";
-import { dashboardVariants, type DashboardVariant } from "@/lib/dashboard/dashboard-config";
+import { dashboardVariants, isDashboardOrganizationModule, type DashboardVariant } from "@/lib/dashboard/dashboard-config";
 
-export function DashboardSidebarModules({ variant, translations: t }: { variant: DashboardVariant; translations: Dictionary["app"]["dashboardShell"] }) {
+export function DashboardSidebarModules({ variant, translations: t, showOrganizationContext }: { variant: DashboardVariant; translations: Dictionary["app"]["dashboardShell"]; showOrganizationContext: boolean }) {
+  const modules = showOrganizationContext
+    ? dashboardVariants[variant].sidebar
+    : dashboardVariants[variant].sidebar.filter((moduleKey) => !isDashboardOrganizationModule(moduleKey));
+
   return (
     <div className="space-y-1">
-      {dashboardVariants[variant].sidebar.map((moduleKey) => {
+      {modules.map((moduleKey) => {
         const Icon = dashboardModuleMeta[moduleKey].icon;
+        const title = moduleKey === "university" && variant === "universityAdmin"
+          ? t.academicStructure
+          : t.modules[moduleKey].title;
         return (
-          <div key={moduleKey} aria-disabled="true" title={`${t.modules[moduleKey].title} · ${t.comingSoon}`} className="flex cursor-not-allowed items-center gap-2 rounded-xl px-3 py-1.5 text-[11px] font-medium text-slate-400">
+          <div key={moduleKey} aria-disabled="true" title={`${title} · ${t.comingSoon}`} className="flex cursor-not-allowed items-center gap-2 rounded-xl px-3 py-1.5 text-[11px] font-medium text-slate-400">
             <Icon className="size-4 shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{t.modules[moduleKey].title}</span>
+            <span className="min-w-0 flex-1 truncate">{title}</span>
             <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">{t.comingSoon}</Badge>
           </div>
         );
