@@ -118,6 +118,45 @@ export type Database = {
           pending_approvals: number;
         }[];
       };
+      get_home_academic_context: {
+        Args: { requested_profile_id: string };
+        Returns: {
+          profile_id: string;
+          university_id: string | null;
+          university_name: string | null;
+          faculty_id: string | null;
+          faculty_name: string | null;
+          academic_program_id: string | null;
+          academic_program_name: string | null;
+          program_level: AcademicProgramLevel | null;
+          academic_year_id: string | null;
+          academic_year_name: string | null;
+          academic_year_code: string | null;
+          academic_term_id: string | null;
+          academic_term_name: string | null;
+          academic_term_number: number | null;
+          academic_group_id: string | null;
+          academic_group_name: string | null;
+          academic_group_code: string | null;
+          context_status: EntityStatus | null;
+          is_primary: boolean | null;
+        }[];
+      };
+      get_home_training_context: {
+        Args: { requested_profile_id: string };
+        Returns: {
+          profile_id: string;
+          organization_id: string | null;
+          organization_name: string | null;
+          organization_type: OrganizationType | null;
+          training_period_id: string | null;
+          training_period_name: string | null;
+          training_period_code: string | null;
+          training_period_start_date: string | null;
+          training_period_end_date: string | null;
+          is_current: boolean | null;
+        }[];
+      };
       has_platform_admin_console_access: {
         Args: { requested_profile_id: string };
         Returns: boolean;
