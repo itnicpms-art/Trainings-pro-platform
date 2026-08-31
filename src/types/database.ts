@@ -1,4 +1,8 @@
-import type { OnboardingFlow, OrganizationType, PermissionScope, ProfileStatus, ProfileType } from "@/types/app";
+import type { EntityStatus, OnboardingFlow, OrganizationType, PermissionScope, ProfileStatus, ProfileType } from "@/types/app";
+
+export type AcademicProgramLevel = "bachelor" | "master" | "phd" | "postgraduate" | "other";
+export type AcademicTermType = "semester" | "trimester" | "module" | "term" | "other";
+export type OrganizationUnitType = "faculty" | "department" | "school" | "center" | "campus" | "administrative_unit" | "other";
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -11,6 +15,48 @@ export type Database = {
         Row: Timestamped & { id: string; name: string; slug: string; type: OrganizationType; description: string | null; logo_url: string | null; website: string | null; status: string; updated_at: string };
         Insert: { id?: string; name: string; slug: string; type: OrganizationType; description?: string | null; logo_url?: string | null; website?: string | null; status?: string; created_at?: string; updated_at?: string };
         Update: { name?: string; slug?: string; type?: OrganizationType; description?: string | null; logo_url?: string | null; website?: string | null; status?: string; updated_at?: string };
+        Relationships: [];
+      };
+      organization_units: {
+        Row: Timestamped & { id: string; organization_id: string; parent_unit_id: string | null; unit_type: OrganizationUnitType; code: string; name: string; description: string | null; status: EntityStatus; updated_at: string };
+        Insert: { id?: string; organization_id: string; parent_unit_id?: string | null; unit_type: OrganizationUnitType; code: string; name: string; description?: string | null; status?: EntityStatus; created_at?: string; updated_at?: string };
+        Update: { organization_id?: string; parent_unit_id?: string | null; unit_type?: OrganizationUnitType; code?: string; name?: string; description?: string | null; status?: EntityStatus; updated_at?: string };
+        Relationships: [];
+      };
+      academic_programs: {
+        Row: Timestamped & { id: string; organization_id: string; organization_unit_id: string | null; code: string; name: string; description: string | null; program_level: AcademicProgramLevel; standard_duration_years: number | null; status: EntityStatus; updated_at: string };
+        Insert: { id?: string; organization_id: string; organization_unit_id?: string | null; code: string; name: string; description?: string | null; program_level: AcademicProgramLevel; standard_duration_years?: number | null; status?: EntityStatus; created_at?: string; updated_at?: string };
+        Update: { organization_id?: string; organization_unit_id?: string | null; code?: string; name?: string; description?: string | null; program_level?: AcademicProgramLevel; standard_duration_years?: number | null; status?: EntityStatus; updated_at?: string };
+        Relationships: [];
+      };
+      academic_years: {
+        Row: Timestamped & { id: string; organization_id: string; code: string; name: string; start_date: string; end_date: string; is_current: boolean; status: EntityStatus; updated_at: string };
+        Insert: { id?: string; organization_id: string; code: string; name: string; start_date: string; end_date: string; is_current?: boolean; status?: EntityStatus; created_at?: string; updated_at?: string };
+        Update: { organization_id?: string; code?: string; name?: string; start_date?: string; end_date?: string; is_current?: boolean; status?: EntityStatus; updated_at?: string };
+        Relationships: [];
+      };
+      academic_terms: {
+        Row: Timestamped & { id: string; organization_id: string; academic_year_id: string; code: string; name: string; term_type: AcademicTermType; term_number: number | null; start_date: string; end_date: string; status: EntityStatus; updated_at: string };
+        Insert: { id?: string; organization_id: string; academic_year_id: string; code: string; name: string; term_type: AcademicTermType; term_number?: number | null; start_date: string; end_date: string; status?: EntityStatus; created_at?: string; updated_at?: string };
+        Update: { organization_id?: string; academic_year_id?: string; code?: string; name?: string; term_type?: AcademicTermType; term_number?: number | null; start_date?: string; end_date?: string; status?: EntityStatus; updated_at?: string };
+        Relationships: [];
+      };
+      academic_groups: {
+        Row: Timestamped & { id: string; organization_id: string; academic_program_id: string; academic_year_id: string | null; academic_term_id: string | null; code: string; name: string; description: string | null; status: EntityStatus; updated_at: string };
+        Insert: { id?: string; organization_id: string; academic_program_id: string; academic_year_id?: string | null; academic_term_id?: string | null; code: string; name: string; description?: string | null; status?: EntityStatus; created_at?: string; updated_at?: string };
+        Update: { organization_id?: string; academic_program_id?: string; academic_year_id?: string | null; academic_term_id?: string | null; code?: string; name?: string; description?: string | null; status?: EntityStatus; updated_at?: string };
+        Relationships: [];
+      };
+      academic_profile_contexts: {
+        Row: Timestamped & { id: string; profile_id: string; organization_id: string; organization_unit_id: string | null; academic_program_id: string | null; academic_year_id: string | null; academic_term_id: string | null; academic_group_id: string | null; status: EntityStatus; is_primary: boolean; started_at: string | null; ended_at: string | null; updated_at: string };
+        Insert: { id?: string; profile_id: string; organization_id: string; organization_unit_id?: string | null; academic_program_id?: string | null; academic_year_id?: string | null; academic_term_id?: string | null; academic_group_id?: string | null; status?: EntityStatus; is_primary?: boolean; started_at?: string | null; ended_at?: string | null; created_at?: string; updated_at?: string };
+        Update: { organization_id?: string; organization_unit_id?: string | null; academic_program_id?: string | null; academic_year_id?: string | null; academic_term_id?: string | null; academic_group_id?: string | null; status?: EntityStatus; is_primary?: boolean; started_at?: string | null; ended_at?: string | null; updated_at?: string };
+        Relationships: [];
+      };
+      organization_training_periods: {
+        Row: Timestamped & { id: string; organization_id: string; code: string; name: string; start_date: string; end_date: string; is_current: boolean; status: EntityStatus; updated_at: string };
+        Insert: { id?: string; organization_id: string; code: string; name: string; start_date: string; end_date: string; is_current?: boolean; status?: EntityStatus; created_at?: string; updated_at?: string };
+        Update: { organization_id?: string; code?: string; name?: string; start_date?: string; end_date?: string; is_current?: boolean; status?: EntityStatus; updated_at?: string };
         Relationships: [];
       };
       profiles: {

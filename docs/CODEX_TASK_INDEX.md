@@ -10,7 +10,7 @@
 | 002.1 | `TASK-002-1-adaptive-dashboard-shell.md` | Dashboard shell adaptiv după profil activ și rol, fără date demonstrative |
 | 002.2 | `testing/QA_PROFILES_SEED.md` | Seed local/staging securizat pentru verificarea variantelor de dashboard după profil și rol |
 | 002.5 | `TASK-002-5-platform-admin-console.md` | Consolă Platform Admin bilingvă, protejată și read-only pentru guvernanță globală |
-| 003 | `TASK-003-organizations-universities-academic.md` | Organizații, universități, programe, years, semesters, groups |
+| 003 | `tasks/TASK-003-organizations-academic-structure.md` | Fundație securizată pentru universități, structură academică și perioade de training organizaționale |
 | 004 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
@@ -53,6 +53,13 @@ TASK 002.2 este exclusiv un instrument operator local/staging. Nu expune cheia s
 - `docs/roadmap/TASK_002_5_COMPLETION_NOTES.md` — rute, migrare, validări, QA și lucru amânat.
 
 TASK 002.5 adaugă consola globală numai pentru profilul activ care are simultan rolul `platform_admin` și permisiunea `admin.access`. Datele globale sunt disponibile prin RPC-uri de citire verificate; nu se folosește service-role în runtime și nu se adaugă mutații administrative.
+
+## Documentație TASK 003
+
+- `docs/tasks/TASK-003-organizations-academic-structure.md` — modelul de business, tabelele, integritatea, securitatea și limitele fundației academice;
+- `docs/roadmap/TASK_003_COMPLETION_NOTES.md` — scopul livrat, validările și lucrul amânat.
+
+TASK 003 separă structura academică completă a universităților de perioadele simple de training ale celorlalte organizații. Nu adaugă UI, date demonstrative sau acces direct la noile tabele.
 
 ## Reguli de execuție
 
