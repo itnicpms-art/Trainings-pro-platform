@@ -12,10 +12,25 @@ const TERMS_VERSION = "2026-08-29";
 
 type Client = SupabaseClient<Database>;
 type Organization = TableRow<"organizations">;
+type OrganizationUnit = TableRow<"organization_units">;
+type AcademicProgram = TableRow<"academic_programs">;
+type AcademicYear = TableRow<"academic_years">;
+type AcademicTerm = TableRow<"academic_terms">;
+type AcademicGroup = TableRow<"academic_groups">;
+type AcademicProfileContext = TableRow<"academic_profile_contexts">;
+type OrganizationTrainingPeriod = TableRow<"organization_training_periods">;
 type Profile = TableRow<"profiles">;
 type Role = TableRow<"roles">;
 type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
+
+type QaAcademicStructure = {
+  faculty: OrganizationUnit;
+  program: AcademicProgram;
+  academicYear: AcademicYear;
+  academicTerm: AcademicTerm;
+  academicGroup: AcademicGroup;
+};
 
 type ProfileDefinition = {
   key: string;
@@ -88,8 +103,11 @@ function requireEnvironment(name: string): string {
 }
 
 function assertSafeEnvironment(): void {
-  if (process.env.VERCEL_ENV?.toLowerCase() === "production") {
-    throw new Error("QA profile seeding is disabled in the production Vercel environment.");
+  const productionMarkers = [process.env.VERCEL_ENV, process.env.NODE_ENV]
+    .map((value) => value?.trim().toLowerCase())
+    .filter(Boolean);
+  if (productionMarkers.includes("production")) {
+    throw new Error("QA profile seeding is disabled in production environments.");
   }
 }
 
@@ -147,6 +165,236 @@ async function ensureOrganization(
   const { data, error } = await client.from("organizations").upsert(values, { onConflict: "slug" }).select("*").single();
   if (error) throwDatabaseError(`Unable to ensure organization ${values.slug}`, error);
   return data;
+}
+
+async function ensureAcademicStructure(client: Client, university: Organization): Promise<QaAcademicStructure> {
+  const { data: faculty, error: facultyError } = await client
+    .from("organization_units")
+    .upsert({
+      organization_id: university.id,
+      parent_unit_id: null,
+      unit_type: "faculty",
+      code: "MED",
+      name: "Faculty of Medicine",
+      description: "QA-only faculty for academic context testing",
+      status: "active",
+    }, { onConflict: "organization_id,code" })
+    .select("*")
+    .single();
+  if (facultyError) throwDatabaseError("Unable to ensure the QA Faculty of Medicine", facultyError);
+
+  const { data: program, error: programError } = await client
+    .from("academic_programs")
+    .upsert({
+      organization_id: university.id,
+      organization_unit_id: faculty.id,
+      code: "GMED",
+      name: "General Medicine",
+      description: "QA-only academic program for context testing",
+      program_level: "bachelor",
+      standard_duration_years: 6,
+      status: "active",
+    }, { onConflict: "organization_id,code" })
+    .select("*")
+    .single();
+  if (programError) throwDatabaseError("Unable to ensure the QA General Medicine program", programError);
+
+  const { error: academicYearNormalizationError } = await client
+    .from("academic_years")
+    .update({ is_current: false })
+    .eq("organization_id", university.id)
+    .eq("is_current", true)
+    .neq("code", "2026-2027");
+  if (academicYearNormalizationError) throwDatabaseError("Unable to normalize QA current academic years", academicYearNormalizationError);
+
+  const { data: academicYear, error: academicYearError } = await client
+    .from("academic_years")
+    .upsert({
+      organization_id: university.id,
+      code: "2026-2027",
+      name: "2026–2027",
+      start_date: "2026-10-01",
+      end_date: "2027-07-31",
+      is_current: true,
+      status: "active",
+    }, { onConflict: "organization_id,code" })
+    .select("*")
+    .single();
+  if (academicYearError) throwDatabaseError("Unable to ensure QA academic year 2026-2027", academicYearError);
+
+  const { data: academicTerm, error: academicTermError } = await client
+    .from("academic_terms")
+    .upsert({
+      organization_id: university.id,
+      academic_year_id: academicYear.id,
+      code: "S1",
+      name: "Semester 1",
+      term_type: "semester",
+      term_number: 1,
+      start_date: "2026-10-01",
+      end_date: "2027-02-28",
+      status: "active",
+    }, { onConflict: "academic_year_id,code" })
+    .select("*")
+    .single();
+  if (academicTermError) throwDatabaseError("Unable to ensure QA Semester 1", academicTermError);
+
+  const { data: academicGroup, error: academicGroupError } = await client
+    .from("academic_groups")
+    .upsert({
+      organization_id: university.id,
+      academic_program_id: program.id,
+      academic_year_id: academicYear.id,
+      academic_term_id: academicTerm.id,
+      code: "101",
+      name: "Group 101",
+      description: "QA-only academic group for context testing",
+      status: "active",
+    }, { onConflict: "organization_id,code" })
+    .select("*")
+    .single();
+  if (academicGroupError) throwDatabaseError("Unable to ensure QA Group 101", academicGroupError);
+
+  return { faculty, program, academicYear, academicTerm, academicGroup };
+}
+
+async function ensureTrainingPeriod(client: Client, organization: Organization): Promise<OrganizationTrainingPeriod> {
+  const { error: normalizationError } = await client
+    .from("organization_training_periods")
+    .update({ is_current: false })
+    .eq("organization_id", organization.id)
+    .eq("is_current", true)
+    .neq("code", "QA-TRAINING-2026");
+  if (normalizationError) throwDatabaseError("Unable to normalize QA current training periods", normalizationError);
+
+  const { data, error } = await client
+    .from("organization_training_periods")
+    .upsert({
+      organization_id: organization.id,
+      code: "QA-TRAINING-2026",
+      name: "QA Training Period 2026",
+      start_date: "2026-01-01",
+      end_date: "2026-12-31",
+      is_current: true,
+      status: "active",
+    }, { onConflict: "organization_id,code" })
+    .select("*")
+    .single();
+  if (error) throwDatabaseError("Unable to ensure QA Training Period 2026", error);
+  return data;
+}
+
+async function ensureAcademicProfileContext(
+  client: Client,
+  profile: Profile,
+  university: Organization,
+  structure: QaAcademicStructure,
+  includeGroup: boolean,
+): Promise<"created" | "updated"> {
+  const { data: existingContexts, error: lookupError } = await client
+    .from("academic_profile_contexts")
+    .select("*")
+    .eq("profile_id", profile.id)
+    .order("created_at", { ascending: true });
+  if (lookupError) throwDatabaseError(`Unable to load academic contexts for ${profile.label}`, lookupError);
+
+  const existingPrimary = existingContexts.find((context: AcademicProfileContext) => context.status === "active" && context.is_primary);
+  const matchingContext = existingContexts.find((context: AcademicProfileContext) => (
+    context.organization_id === university.id
+    && context.academic_program_id === structure.program.id
+    && context.academic_year_id === structure.academicYear.id
+    && context.academic_term_id === structure.academicTerm.id
+    && context.academic_group_id === (includeGroup ? structure.academicGroup.id : null)
+  ));
+  const target = existingPrimary ?? matchingContext ?? existingContexts[0] ?? null;
+  const values: Database["public"]["Tables"]["academic_profile_contexts"]["Update"] = {
+    organization_id: university.id,
+    organization_unit_id: structure.faculty.id,
+    academic_program_id: structure.program.id,
+    academic_year_id: structure.academicYear.id,
+    academic_term_id: structure.academicTerm.id,
+    academic_group_id: includeGroup ? structure.academicGroup.id : null,
+    status: "active",
+    is_primary: true,
+    started_at: "2026-10-01",
+    ended_at: null,
+  };
+
+  if (target) {
+    const { error } = await client
+      .from("academic_profile_contexts")
+      .update(values)
+      .eq("id", target.id);
+    if (error) throwDatabaseError(`Unable to update academic context for ${profile.label}`, error);
+
+    const { error: normalizationError } = await client
+      .from("academic_profile_contexts")
+      .update({ is_primary: false })
+      .eq("profile_id", profile.id)
+      .eq("is_primary", true)
+      .neq("id", target.id);
+    if (normalizationError) throwDatabaseError(`Unable to normalize academic contexts for ${profile.label}`, normalizationError);
+    return "updated";
+  }
+
+  const { error } = await client.from("academic_profile_contexts").insert({
+    ...values,
+    profile_id: profile.id,
+    organization_id: university.id,
+  });
+  if (error) throwDatabaseError(`Unable to create academic context for ${profile.label}`, error);
+  return "created";
+}
+
+async function verifyQaContextSeed(
+  client: Client,
+  profilesByKey: Map<string, Profile>,
+  university: Organization,
+  structure: QaAcademicStructure,
+  academicContextDefinitions: Array<{ key: string; includeGroup: boolean }>,
+  trainingOrganization: Organization,
+  trainingPeriod: OrganizationTrainingPeriod,
+): Promise<void> {
+  for (const definition of academicContextDefinitions) {
+    const profile = profilesByKey.get(definition.key);
+    if (!profile) throw new Error(`Required QA profile is unavailable during verification: ${definition.key}`);
+
+    const { data: contexts, error } = await client
+      .from("academic_profile_contexts")
+      .select("organization_id,organization_unit_id,academic_program_id,academic_year_id,academic_term_id,academic_group_id,status,is_primary")
+      .eq("profile_id", profile.id)
+      .eq("status", "active")
+      .eq("is_primary", true);
+    if (error) throwDatabaseError(`Unable to verify academic context for ${profile.label}`, error);
+
+    const expectedGroupId = definition.includeGroup ? structure.academicGroup.id : null;
+    const expectedContexts = contexts.filter((context) => (
+      context.organization_id === university.id
+      && context.organization_unit_id === structure.faculty.id
+      && context.academic_program_id === structure.program.id
+      && context.academic_year_id === structure.academicYear.id
+      && context.academic_term_id === structure.academicTerm.id
+      && context.academic_group_id === expectedGroupId
+    ));
+    if (contexts.length !== 1 || expectedContexts.length !== 1) {
+      throw new Error(`Academic context verification failed for ${definition.key}`);
+    }
+  }
+
+  const { data: trainingPeriods, error: trainingPeriodError } = await client
+    .from("organization_training_periods")
+    .select("id,is_current,status")
+    .eq("organization_id", trainingOrganization.id)
+    .eq("code", "QA-TRAINING-2026");
+  if (trainingPeriodError) throwDatabaseError("Unable to verify QA Training Period 2026", trainingPeriodError);
+  if (
+    trainingPeriods.length !== 1
+    || trainingPeriods[0].id !== trainingPeriod.id
+    || !trainingPeriods[0].is_current
+    || trainingPeriods[0].status !== "active"
+  ) {
+    throw new Error("QA Training Period 2026 verification failed");
+  }
 }
 
 async function ensureRoles(client: Client): Promise<Map<string, Role>> {
@@ -307,6 +555,7 @@ function redact(message: string, secrets: string[]): string {
 }
 
 async function main(): Promise<void> {
+  assertSafeEnvironment();
   loadLocalEnvironment();
   assertSafeEnvironment();
   const supabaseUrl = requireEnvironment("NEXT_PUBLIC_SUPABASE_URL");
@@ -340,6 +589,7 @@ async function main(): Promise<void> {
 
     const existingProfiles = await loadUserProfiles(client, authResult.user.id);
     const results: Array<{ key: string; created: boolean }> = [];
+    const profilesByKey = new Map<string, Profile>();
     for (const definition of profileDefinitions) {
       const organization = organizationFor(definition, trainingOrganization, universityOrganization);
       const result = await ensureProfile(client, authResult.user.id, definition, organization, existingProfiles);
@@ -347,11 +597,47 @@ async function main(): Promise<void> {
       if (!role) throw new Error(`Required role is unavailable: ${definition.roleCode}`);
       await normalizeMembership(client, result.profile, organization);
       await normalizeProfileRole(client, result.profile, role, definition.scopeType, scopeIdFor(definition, organization));
+      profilesByKey.set(definition.key, result.profile);
       results.push({ key: definition.key, created: result.created });
     }
 
+    const academicStructure = await ensureAcademicStructure(client, universityOrganization);
+    const trainingPeriod = await ensureTrainingPeriod(client, trainingOrganization);
+    const academicContextDefinitions: Array<{ key: string; includeGroup: boolean }> = [
+      { key: "academicStudent", includeGroup: true },
+      { key: "professor", includeGroup: false },
+      { key: "coordinator", includeGroup: false },
+      { key: "universityAdmin", includeGroup: false },
+    ];
+    const academicContextResults: Array<{ key: string; result: "created" | "updated" }> = [];
+    for (const definition of academicContextDefinitions) {
+      const profile = profilesByKey.get(definition.key);
+      if (!profile) throw new Error(`Required QA profile is unavailable: ${definition.key}`);
+      const result = await ensureAcademicProfileContext(
+        client,
+        profile,
+        universityOrganization,
+        academicStructure,
+        definition.includeGroup,
+      );
+      academicContextResults.push({ key: definition.key, result });
+    }
+    await verifyQaContextSeed(
+      client,
+      profilesByKey,
+      universityOrganization,
+      academicStructure,
+      academicContextDefinitions,
+      trainingOrganization,
+      trainingPeriod,
+    );
+
     console.log(`QA Auth user: ${authResult.created ? "created" : "reused"} (${QA_EMAIL})`);
     for (const result of results) console.log(`QA profile ${result.key}: ${result.created ? "created" : "reused"}`);
+    console.log(`QA academic structure: ensured (${academicStructure.program.code}, ${academicStructure.academicYear.code}, ${academicStructure.academicGroup.code})`);
+    for (const context of academicContextResults) console.log(`QA academic context ${context.key}: ${context.result}`);
+    console.log(`QA training period: ensured (${trainingPeriod.code})`);
+    console.log("QA context idempotency checks: passed.");
     console.log("QA profile seed completed successfully.");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
