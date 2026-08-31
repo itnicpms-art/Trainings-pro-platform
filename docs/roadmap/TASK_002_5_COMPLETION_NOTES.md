@@ -29,6 +29,7 @@ A fost implementată fundația bilingvă a Platform Admin Console, pe baza regul
 - toate textele vizibile noi sunt în dicționarele RO/EN.
 - follow-up: ruta exactă `/{locale}/app` redirecționează server-side la `/{locale}/admin` numai când profilul activ are simultan rolul `platform_admin` în scope platform și permisiunea `admin.access`;
 - dashboard-urile `/app` pentru profile individuale, academice și organizaționale rămân neschimbate, iar `/app/profiles` și `/app/settings` rămân accesibile.
+- follow-up: un switch de profil reușit din orice rută admin navighează la `/{locale}/app`; profilul selectat este apoi rutat de regulile server-side existente către dashboard-ul normal sau înapoi în consola admin.
 
 ## Migrare
 
@@ -69,6 +70,10 @@ Migrarea nu a fost aplicată automat pe un proiect Supabase remote în această 
 - QA Organization Admin: `/ro/app` păstrează dashboard-ul organizațional dacă nu are acces Platform Admin — necesită sesiune QA autentificată;
 - QA Platform Admin: `/ro/app` redirecționează la `/ro/admin` — necesită sesiune QA autentificată;
 - QA Platform Admin: `/en/app` redirecționează la `/en/admin` — necesită sesiune QA autentificată;
+- QA Platform Admin pe `/ro/admin/content` → QA Individual Learner: navighează la `/ro/app` și afișează dashboard-ul learner — necesită sesiune QA autentificată;
+- QA Platform Admin pe `/ro/admin/users` → QA Academic Student: navighează la `/ro/app` și afișează dashboard-ul academic — necesită sesiune QA autentificată;
+- QA Individual Learner pe `/ro/app` → QA Platform Admin: refresh-ul existent ajunge la `/ro/admin` prin redirectul server-side — necesită sesiune QA autentificată;
+- aceleași fluxuri pentru `/en/admin` și `/en/app` — necesită sesiune QA autentificată;
 - `/ro/admin` și `/en/admin` rămân protejate de layout-ul admin existent; redirecturile neautentificate au fost reverificate local.
 
 ## Confirmări de securitate

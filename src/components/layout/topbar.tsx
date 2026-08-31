@@ -65,6 +65,10 @@ export function Topbar({ area, title, locale, translations: t, adminNavigation, 
     }
 
     toast.success(switcherT.selectionSuccess);
+    if (area === "admin") {
+      router.replace(`/${locale}/app`);
+      return;
+    }
     router.refresh();
   }
 

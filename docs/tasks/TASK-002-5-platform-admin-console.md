@@ -34,6 +34,8 @@ Ruta exactă `/{locale}/app` rămâne workspace-ul personal/operațional pentru 
 
 Redirectul păstrează locale-ul `ro`/`en`, nu este client-side și nu înlocuiește guard-ul independent al layout-ului admin. Rutele `/app/profiles` și `/app/settings` rămân disponibile pentru gestionarea profilului și contului.
 
+Când profilul activ este schimbat din interiorul consolei admin, Topbar navighează la `/{locale}/app` după confirmarea server-side a schimbării. Un profil normal rămâne în dashboard-ul său, iar un profil cu acces Platform Admin este redirecționat din nou server-side la `/{locale}/admin`. Schimbarea profilului din zona `/app` păstrează comportamentul existent de refresh al rutei curente.
+
 ## Acces read-only la date
 
 Migrarea `supabase/migrations/003_platform_admin_read_access.sql` adaugă exclusiv funcții de citire:
