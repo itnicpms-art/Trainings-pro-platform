@@ -62,6 +62,55 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: string;
       };
+      get_platform_admin_overview: {
+        Args: { requested_profile_id: string };
+        Returns: {
+          active_profiles: number;
+          organizations: number;
+          roles: number;
+          permissions: number;
+          pending_approvals: number;
+        }[];
+      };
+      has_platform_admin_console_access: {
+        Args: { requested_profile_id: string };
+        Returns: boolean;
+      };
+      list_platform_admin_onboarding_requests: {
+        Args: { requested_profile_id: string };
+        Returns: {
+          id: string;
+          flow: Exclude<OnboardingFlow, "individual">;
+          organization_name: string | null;
+          organization_type: string | null;
+          status: "pending_email_confirmation" | "pending_organization_approval" | "pending_review" | "approved" | "rejected";
+          created_at: string;
+        }[];
+      };
+      list_platform_admin_organizations: {
+        Args: { requested_profile_id: string };
+        Returns: {
+          id: string;
+          name: string;
+          slug: string;
+          organization_type: OrganizationType;
+          status: "active" | "inactive" | "suspended" | "archived";
+          website: string | null;
+          created_at: string;
+        }[];
+      };
+      list_platform_admin_profiles: {
+        Args: { requested_profile_id: string };
+        Returns: {
+          id: string;
+          display_name: string;
+          profile_type: ProfileType;
+          status: ProfileStatus;
+          organization_name: string | null;
+          university_id: string | null;
+          created_at: string;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

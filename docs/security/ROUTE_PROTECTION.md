@@ -21,6 +21,7 @@ Următoarele rute și toți descendenții lor sunt protejați:
 - Layout-urile app/admin repetă `getCurrentUser()` înainte de randare.
 - Layout-ul app cere un profil propriu cu status `active`; statusurile pending primesc o stare dedicată.
 - Layout-ul admin cere rolul `platform_admin` și permisiunea `admin.access` în scope platform.
+- Același layout protejează toate rutele TASK 002.5: overview, organizations, users, roles, security, audit, website, approvals și content.
 - Non-admin vede starea restricted localizată, fără conținut admin.
 - Route Handlers pentru logout și profil activ verifică origin/sesiune/ownership după caz.
 
@@ -66,6 +67,8 @@ Un utilizator autentificat care nu are `platform_admin` + permisiunea admin nece
 - nu primește informații despre structura internă sau datele altor organizații.
 
 RLS trebuie să blocheze datele chiar dacă utilizatorul ocolește UI-ul restricted.
+
+Pentru datele globale TASK 002.5, RPC-urile read-only repetă verificarea profilului propriu activ, a rolului `platform_admin` și a permisiunii `admin.access`. Layout-ul nu este singura barieră de autorizare.
 
 ## Redirecturi locale
 
