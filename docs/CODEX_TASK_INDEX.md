@@ -9,6 +9,7 @@
 | 002 | `TASK-002-auth-users-profiles-roles.md` | Auth, profile multiple, active profile, permissions helper |
 | 002.1 | `TASK-002-1-adaptive-dashboard-shell.md` | Dashboard shell adaptiv după profil activ și rol, fără date demonstrative |
 | 002.2 | `testing/QA_PROFILES_SEED.md` | Seed local/staging securizat pentru verificarea variantelor de dashboard după profil și rol |
+| 002.5 | `TASK-002-5-platform-admin-console.md` | Consolă Platform Admin bilingvă, protejată și read-only pentru guvernanță globală |
 | 003 | `TASK-003-organizations-universities-academic.md` | Organizații, universități, programe, years, semesters, groups |
 | 004 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
@@ -45,6 +46,13 @@ TASK 002.1 nu adaugă backend-uri educaționale, schemă, migrare sau politici R
 - `docs/roadmap/TASK_002_2_COMPLETION_NOTES.md` — scop, fișiere, validări, limitări și confirmările de securitate.
 
 TASK 002.2 este exclusiv un instrument operator local/staging. Nu expune cheia service-role în aplicație, nu schimbă înregistrarea publică sau RLS și nu creează date educaționale demonstrative.
+
+## Documentație TASK 002.5
+
+- `docs/tasks/TASK-002-5-platform-admin-console.md` — scop, autorizare, acces read-only și limite;
+- `docs/roadmap/TASK_002_5_COMPLETION_NOTES.md` — rute, migrare, validări, QA și lucru amânat.
+
+TASK 002.5 adaugă consola globală numai pentru profilul activ care are simultan rolul `platform_admin` și permisiunea `admin.access`. Datele globale sunt disponibile prin RPC-uri de citire verificate; nu se folosește service-role în runtime și nu se adaugă mutații administrative.
 
 ## Reguli de execuție
 

@@ -147,3 +147,16 @@ Codul runtime curent nu citește service role.
 - înlocuiește politicile/granturile permisive pentru profile și revocă mutațiile publice de rol/membership.
 
 Migrarea nu a fost aplicată de această schimbare într-un proiect Supabase remote. Validarea SQL/RLS pe proiectul de test trebuie consemnată separat la deployment.
+
+## Acces read-only Platform Admin — TASK 002.5
+
+Migrarea `003_platform_admin_read_access.sql` evită adăugarea unei politici SELECT globale bazate numai pe existența unei sesiuni. În locul accesului direct la tabele, funcțiile read-only verifică:
+
+- `requested_profile_id` aparține lui `auth.uid()`;
+- profilul are status `active`;
+- profilul are rolul `platform_admin` în scope `platform`, fără `scope_id`;
+- rolul are `admin.access` acordat, fără `approval_required`.
+
+Funcțiile expun numai datele necesare overview-ului, organizațiilor, profilelor și cererilor de onboarding. Date sensibile precum `auth.users`, hash-ul invitației, motivul cererii și detaliile de autentificare nu sunt returnate.
+
+`EXECUTE` este revocat pentru `public` și `anon` și acordat rolului `authenticated`. Nu sunt create granturi sau politici INSERT/UPDATE/DELETE, iar politicile RLS existente nu sunt slăbite. Aplicarea și testarea migrării într-o instanță QA rămân pași de deployment separați.
