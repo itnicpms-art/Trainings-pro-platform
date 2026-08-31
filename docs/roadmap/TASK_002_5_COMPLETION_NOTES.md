@@ -27,6 +27,8 @@ A fost implementată fundația bilingvă a Platform Admin Console, pe baza regul
 - inventar read-only pentru roluri, permisiuni și relații RBAC;
 - secțiuni explicite pentru securitate și stări viitoare pentru audit, CMS și conținut;
 - toate textele vizibile noi sunt în dicționarele RO/EN.
+- follow-up: ruta exactă `/{locale}/app` redirecționează server-side la `/{locale}/admin` numai când profilul activ are simultan rolul `platform_admin` în scope platform și permisiunea `admin.access`;
+- dashboard-urile `/app` pentru profile individuale, academice și organizaționale rămân neschimbate, iar `/app/profiles` și `/app/settings` rămân accesibile.
 
 ## Migrare
 
@@ -59,6 +61,15 @@ Migrarea nu a fost aplicată automat pe un proiect Supabase remote în această 
 - verificarea stării restricted pentru profile non-admin: de rulat cu profilele QA locale;
 - verificarea tuturor ecranelor cu QA Platform Admin: necesită aplicarea migrării 003 în instanța Supabase QA;
 - fallback-ul fără acces la RPC este fail-closed și afișează starea localizată de date indisponibile.
+
+### Checklist follow-up workspace
+
+- QA Individual Learner: `/ro/app` deschide dashboard-ul normal — necesită sesiune QA autentificată;
+- QA Academic Student: `/ro/app` deschide dashboard-ul academic — necesită sesiune QA autentificată;
+- QA Organization Admin: `/ro/app` păstrează dashboard-ul organizațional dacă nu are acces Platform Admin — necesită sesiune QA autentificată;
+- QA Platform Admin: `/ro/app` redirecționează la `/ro/admin` — necesită sesiune QA autentificată;
+- QA Platform Admin: `/en/app` redirecționează la `/en/admin` — necesită sesiune QA autentificată;
+- `/ro/admin` și `/en/admin` rămân protejate de layout-ul admin existent; redirecturile neautentificate au fost reverificate local.
 
 ## Confirmări de securitate
 

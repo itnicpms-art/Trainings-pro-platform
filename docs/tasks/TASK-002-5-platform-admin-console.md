@@ -28,6 +28,12 @@ Toate rutele `/{locale}/admin` și descendenții folosesc layout-ul admin server
 
 Non-admin primește starea restricted localizată. Verificarea nu se bazează doar pe `profile_type` și nu este client-side.
 
+## Workspace principal Platform Admin
+
+Ruta exactă `/{locale}/app` rămâne workspace-ul personal/operațional pentru profilele non-admin. Dacă profilul activ trece simultan verificarea rolului `platform_admin` în scope platform și a permisiunii `admin.access`, Server Component-ul redirecționează la `/{locale}/admin`.
+
+Redirectul păstrează locale-ul `ro`/`en`, nu este client-side și nu înlocuiește guard-ul independent al layout-ului admin. Rutele `/app/profiles` și `/app/settings` rămân disponibile pentru gestionarea profilului și contului.
+
 ## Acces read-only la date
 
 Migrarea `supabase/migrations/003_platform_admin_read_access.sql` adaugă exclusiv funcții de citire:
