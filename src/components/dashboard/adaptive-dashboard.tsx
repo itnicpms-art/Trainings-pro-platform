@@ -5,11 +5,13 @@ import { dashboardModuleMeta } from "@/components/dashboard/dashboard-module-met
 import { DashboardQuickActions } from "@/components/dashboard/dashboard-quick-actions";
 import { DashboardSectionCard } from "@/components/dashboard/dashboard-section-card";
 import { DashboardStatCard } from "@/components/dashboard/dashboard-stat-card";
+import { AcademicContextReadout, TrainingContextReadout } from "@/components/dashboard/home-context-readout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
 import type { UserProfile } from "@/lib/auth/get-user-profiles";
 import { dashboardVariants, isDashboardOrganizationModule, type DashboardModuleKey, type DashboardVariant } from "@/lib/dashboard/dashboard-config";
+import type { HomeAcademicContext, HomeTrainingContext } from "@/lib/dashboard/get-home-contexts";
 
 type AdaptiveDashboardProps = {
   locale: Locale;
@@ -21,7 +23,10 @@ type AdaptiveDashboardProps = {
   activeProfileCount: number;
   organizationCount: number;
   showOrganizationContext: boolean;
-  hasAcademicContext: boolean;
+  showAcademicContext: boolean;
+  showTrainingContext: boolean;
+  academicContext: HomeAcademicContext | null;
+  trainingContext: HomeTrainingContext | null;
   canAccessPlatformAdmin: boolean;
 };
 
@@ -35,7 +40,10 @@ export function AdaptiveDashboard({
   activeProfileCount,
   organizationCount,
   showOrganizationContext,
-  hasAcademicContext,
+  showAcademicContext,
+  showTrainingContext,
+  academicContext,
+  trainingContext,
   canAccessPlatformAdmin,
 }: AdaptiveDashboardProps) {
   const config = dashboardVariants[variant];
@@ -55,10 +63,11 @@ export function AdaptiveDashboard({
     return t.modules[moduleKey].title;
   };
   const contextualValue = (moduleKey: DashboardModuleKey) => {
-    if ((moduleKey === "organization" || moduleKey === "university") && profile.organizationName) return profile.organizationName;
+    if (moduleKey === "organization") return trainingContext?.organization_name ?? profile.organizationName;
+    if (moduleKey === "university") return academicContext?.university_name;
     if (moduleKey === "representativeStatus") return statusLabel;
     if (moduleKey === "adminAccess" && canAccessPlatformAdmin) return t.available;
-    if (["academicProgram", "academicYear", "semester", "group"].includes(moduleKey) && !hasAcademicContext) return t.comingSoon;
+    if (["academicProgram", "academicYear", "semester", "group"].includes(moduleKey)) return t.comingSoon;
     return null;
   };
 
@@ -84,6 +93,9 @@ export function AdaptiveDashboard({
         organizationLabel={organizationLabel}
         accent={config.accent}
       />
+
+      {showAcademicContext ? <AcademicContextReadout context={academicContext} translations={t.homeContext} placeholder={t.comingSoon} /> : null}
+      {showTrainingContext ? <TrainingContextReadout context={trainingContext} translations={t.homeContext} placeholder={t.comingSoon} /> : null}
 
       <section aria-label={t.summaryLabel} className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => <DashboardStatCard key={stat.label} {...stat} />)}
