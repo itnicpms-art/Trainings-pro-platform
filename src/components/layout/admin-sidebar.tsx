@@ -24,7 +24,7 @@ export function AdminSidebar({ locale, translations: t, navigation, mobile = fal
   ];
   return (
     <div className={cn("flex h-full flex-col bg-[#06113B] text-white", !mobile && "border-r border-white/5")}>
-      <div className="flex h-20 items-center px-5"><BrandLogo compact inverted /></div>
+      <div className="flex h-20 items-center px-5"><Link href={`/${locale}/admin`} aria-label={t.platformControl} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#06113B]"><BrandLogo compact inverted /></Link></div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label={t.adminNavigation}>
         <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-200/50">{t.administration}</p>
         {items.map(({ href, label, icon: Icon }) => {

@@ -182,7 +182,7 @@ const en: Dictionary = {
     },
   },
   shell: {
-    dashboard: "Dashboard",
+    dashboard: "Home",
     profiles: "My profiles",
     settings: "Settings",
     memberNavigation: "Member navigation",

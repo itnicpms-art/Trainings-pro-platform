@@ -180,7 +180,7 @@ const ro = {
     },
   },
   shell: {
-    dashboard: "Dashboard",
+    dashboard: "Acasă",
     profiles: "Profilele mele",
     settings: "Setări",
     memberNavigation: "Navigare membru",

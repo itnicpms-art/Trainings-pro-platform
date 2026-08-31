@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Settings, UsersRound } from "lucide-react";
+import { House, Settings, UsersRound } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { DashboardSidebarModules } from "@/components/dashboard/dashboard-sidebar-modules";
@@ -15,13 +15,13 @@ import { cn } from "@/lib/utils";
 export function AppSidebar({ locale, translations: t, dashboardTranslations, dashboardVariant, showOrganizationContext, activeProfileName, activeProfileStatus, mobile = false }: { locale: Locale; translations: Dictionary["shell"]; dashboardTranslations: Dictionary["app"]["dashboardShell"]; dashboardVariant: DashboardVariant; showOrganizationContext: boolean; activeProfileName: string; activeProfileStatus: string; mobile?: boolean }) {
   const pathname = usePathname();
   const items = [
-    { href: `/${locale}/app`, label: t.dashboard, icon: LayoutDashboard },
+    { href: `/${locale}/app`, label: t.dashboard, icon: House },
     { href: `/${locale}/app/profiles`, label: t.profiles, icon: UsersRound },
     { href: `/${locale}/app/settings`, label: t.settings, icon: Settings },
   ];
   return (
     <div className={cn("flex h-full flex-col bg-white", !mobile && "border-r border-slate-200")}>
-      <div className="flex h-20 items-center px-5"><BrandLogo compact /></div>
+      <div className="flex h-20 items-center px-5"><Link href={`/${locale}/app`} aria-label={t.dashboard} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"><BrandLogo compact /></Link></div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-2.5 py-3" aria-label={t.memberNavigation}>
         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t.personalSpace}</p>
         {items.map(({ href, label, icon: Icon }) => {
