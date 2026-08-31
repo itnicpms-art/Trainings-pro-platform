@@ -2,14 +2,14 @@
 
 ## Purpose and scope
 
-`scripts/seed-qa-profiles.ts` prepares one dedicated Auth identity and the profile contexts needed to verify the adaptive dashboard. It is an operator-only utility for local and staging environments. It is not imported by runtime application code and is not exposed through the UI or public registration.
+`scripts/seed-qa-profiles.ts` prepares one dedicated Auth identity, its role/profile matrix, and the QA-only academic and training contexts needed to verify Acasă/Home. It is an operator-only utility for local and staging environments. It is not imported by runtime application code and is not exposed through the UI or public registration.
 
-The seed creates no courses, assignments, assessments, grades, credits, progress, certificates, activity, academic programs, groups, or other educational records.
+The seed creates only the minimal TASK 003 structure listed below. It creates no courses, lessons, assignments, quizzes, tests, exams, projects, certificates, credits, ECTS, grades, reports, bookings, progress, activity, or metrics.
 
 ## Security rules
 
 - Run only against a disposable local or approved staging Supabase project.
-- Never run against production. The script refuses execution when `VERCEL_ENV=production`.
+- Never run against production. The script refuses execution when either `VERCEL_ENV=production` or `NODE_ENV=production`, before creating a Supabase client.
 - `SUPABASE_SERVICE_ROLE_KEY` is used only by the local Node.js process. It must never use a `NEXT_PUBLIC_` prefix or be included in frontend code.
 - Keep `QA_SEED_PASSWORD` and the service-role key in `.env.local` or the operator environment. Do not commit or paste their values into documentation, logs, issues, or pull requests.
 - The script validates all required variables before contacting Supabase and never prints their values.
@@ -64,23 +64,48 @@ The script creates or reuses:
 
 The script also ensures that the existing `platform_admin` role has the existing `admin.access` permission. It does not provide a public role-escalation path and does not change RLS policies.
 
+### QA academic context
+
+Under `QA University Organization`, the script creates or reuses real TASK 003 records:
+
+- faculty `MED` — Faculty of Medicine;
+- bachelor program `GMED` — General Medicine, six-year standard duration;
+- current academic year `2026-2027` — 2026–2027;
+- term `S1` — Semester 1;
+- academic group `101` — Group 101.
+
+It creates or updates one active primary `academic_profile_contexts` record for QA Academic Student, QA Professor, QA Coordinator, and QA University Admin. Only the student context includes Group 101. The other three contexts deliberately keep `academic_group_id` null.
+
+These are QA fixtures in real TASK 003 tables, not hardcoded Acasă/Home values and not production educational data.
+
+### QA organization training context
+
+Under `QA Training Organization`, the script creates or reuses current period `QA-TRAINING-2026` — QA Training Period 2026. The Acasă/Home readout can therefore resolve the period for QA Organization Learner, QA Organization Representative, and QA Organization Admin through `organization_training_periods`.
+
 ## Idempotency
 
-Stable email, organization slugs, and profile labels are used to find existing records. On subsequent runs the Auth user and organizations are reused, the trigger-created default profile is reused, profile fields are normalized, organization membership is upserted, and each QA profile is normalized to its intended single role assignment. Repeated successful runs therefore leave one QA Auth identity and one profile per listed context.
+Stable email, organization slugs, profile labels, and TASK 003 codes are used to find existing records. On subsequent runs the Auth user and organizations are reused, the trigger-created default profile is reused, profile fields are normalized, organization membership is upserted, and each QA profile is normalized to its intended single role assignment. Academic and training records use their existing scoped unique constraints. An existing active primary academic profile context is updated to the expected QA structure rather than duplicated.
 
-To verify idempotency, run the command twice. The second run should report the Auth user and all profiles as `reused`, with no duplicate organizations, profiles, memberships, or role assignments.
+Before reporting success, the script performs read-only verification that every academic QA profile has exactly one active primary context matching the expected structure and that exactly one active/current `QA-TRAINING-2026` period exists in the QA training organization.
+
+To verify idempotency, run the command twice. The second run should report the Auth user and all profiles as `reused`, with no duplicate organizations, profiles, memberships, role assignments, academic contexts, academic structures, or training periods.
 
 ## Manual dashboard QA
 
 1. Sign in through `/ro/login` or `/en/login` with `qa@trainings-pro.test` and the locally configured `QA_SEED_PASSWORD`.
 2. Open `/ro/app/profiles` or `/en/app/profiles`.
-3. Select each profile and inspect the corresponding dashboard at `/{locale}/app`.
-4. Confirm that individual learner has no organization UI when it has no organization association.
-5. Confirm that only the platform administrator profile can pass the existing admin access check.
-6. Confirm that dashboard empty states contain no fabricated educational metrics.
+3. Select each profile and inspect the corresponding Acasă/Home workspace at `/{locale}/app`.
+4. Confirm that QA Academic Student shows QA University Organization, Faculty of Medicine, General Medicine, Bachelor/Licență, 2026–2027, Semester 1, and Group 101.
+5. Confirm that QA Professor, QA Coordinator, and QA University Admin show their real academic context without a group.
+6. Confirm that the three organization profiles show QA Training Organization and QA Training Period 2026 without university academic fields.
+7. Confirm that QA Individual Learner has neither academic nor organization/training context.
+8. Confirm that only QA Platform Admin can pass the existing admin access check and remains redirected from `/app` to `/admin`.
+9. Confirm that no fabricated educational metrics appear.
 
 ## Troubleshooting
 
 - `Missing required environment variable`: set the named variable locally; do not add a real value to `.env.example`.
-- Auth or database error: confirm that the URL and service-role key belong to the same non-production Supabase project and that migrations `001_foundation.sql` and `002_auth_onboarding.sql` are already applied.
+- Auth or database error: confirm that the URL and service-role key belong to the same non-production Supabase project and that migrations 001–005 are already applied.
 - Missing table, column, role, or permission: stop and reconcile the target project schema with the existing migrations. Do not create an ad-hoc migration only to make the QA seed pass.
+
+In a future production environment backed by a separate Supabase project, apply migrations only. Never run this QA seed there.

@@ -12,6 +12,7 @@
 | 002.5 | `TASK-002-5-platform-admin-console.md` | Consolă Platform Admin bilingvă, protejată și read-only pentru guvernanță globală |
 | 003 | `tasks/TASK-003-organizations-academic-structure.md` | Fundație securizată pentru universități, structură academică și perioade de training organizaționale |
 | 003.1 | `tasks/TASK-003-1-home-context-readouts.md` | Readout-uri Acasă/Home pentru context academic și perioade organizaționale reale, prin RPC-uri scoped |
+| 003.2 | `tasks/TASK-003-2-secure-qa-context-seed.md` | Seed QA securizat și idempotent pentru context academic și perioade de training reale |
 | 004 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
@@ -68,6 +69,14 @@ TASK 003 separă structura academică completă a universităților de perioadel
 - `docs/roadmap/TASK_003_1_COMPLETION_NOTES.md` — implementarea, validările, QA și lucrul amânat.
 
 TASK 003.1 conectează Acasă/Home la contextul real al profilului activ. Studentul academic folosește exclusiv contextul academic explicit, profilurile organizaționale folosesc doar organizația și perioada de training, iar Platform Admin rămâne în `/admin`.
+
+## Documentație TASK 003.2
+
+- `docs/tasks/TASK-003-2-secure-qa-context-seed.md` — structura QA, idempotency și limitele de producție;
+- `docs/roadmap/TASK_003_2_COMPLETION_NOTES.md` — scope, validări și QA;
+- `docs/testing/QA_PROFILES_SEED.md` — ghidul operator actualizat pentru profiluri și context.
+
+TASK 003.2 adaugă numai fixture-uri QA în tabelele TASK 003 prin scriptul local/staging existent. Nu adaugă migrare, date de producție sau valori hardcodate în Acasă/Home.
 
 ## Reguli de execuție
 
