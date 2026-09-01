@@ -198,6 +198,10 @@ declare
   normalized_name text := btrim(name);
   normalized_description text := nullif(btrim(description), '');
   normalized_status text := lower(btrim(status));
+  code_was_generated boolean := code is null or btrim(code) = '';
+  code_base text;
+  code_suffix integer := 2;
+  suffix_text text;
   created_unit public.organization_units%rowtype;
 begin
   actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, target_university_id);
@@ -206,9 +210,8 @@ begin
     raise exception 'Only faculty or department units are editable' using errcode = '22023';
   end if;
 
-  if normalized_code is null or normalized_code = ''
-    or normalized_name is null or normalized_name = '' then
-    raise exception 'Code and name are required' using errcode = '22023';
+  if normalized_name is null or normalized_name = '' then
+    raise exception 'Name is required' using errcode = '22023';
   end if;
 
   if normalized_status is null or normalized_status not in ('active', 'inactive', 'archived') then
@@ -233,13 +236,37 @@ begin
       using errcode = '22023';
   end if;
 
-  if exists (
-    select 1
-    from public.organization_units existing
-    where existing.organization_id = target_university_id
-      and lower(btrim(existing.code)) = lower(normalized_code)
-  ) then
-    raise exception 'Academic unit code already exists in this university' using errcode = '23505';
+  if code_was_generated then
+    normalized_code := upper(btrim(regexp_replace(
+      translate(normalized_name, 'ăâîșşțţĂÂÎȘŞȚŢ', 'aaissttAAISSTT'),
+      '[^A-Za-z0-9]+', '-', 'g'
+    ), '-'));
+    normalized_code := left(coalesce(nullif(normalized_code, ''), 'UNIT'), 100);
+    code_base := normalized_code;
+
+    while exists (
+      select 1
+      from public.organization_units existing
+      where existing.organization_id = target_university_id
+        and lower(btrim(existing.code)) = lower(normalized_code)
+    ) loop
+      suffix_text := '-' || code_suffix::text;
+      normalized_code := left(code_base, greatest(1, 100 - char_length(suffix_text))) || suffix_text;
+      code_suffix := code_suffix + 1;
+    end loop;
+  else
+    if char_length(normalized_code) > 100 then
+      raise exception 'Academic unit code must not exceed 100 characters' using errcode = '22023';
+    end if;
+
+    if exists (
+      select 1
+      from public.organization_units existing
+      where existing.organization_id = target_university_id
+        and lower(btrim(existing.code)) = lower(normalized_code)
+    ) then
+      raise exception 'Academic unit code already exists in this university' using errcode = '23505';
+    end if;
   end if;
 
   insert into public.organization_units (
@@ -282,6 +309,10 @@ declare
   normalized_name text := btrim(name);
   normalized_description text := nullif(btrim(description), '');
   normalized_status text := lower(btrim(status));
+  code_was_generated boolean := code is null or btrim(code) = '';
+  code_base text;
+  code_suffix integer := 2;
+  suffix_text text;
   existing_unit public.organization_units%rowtype;
   updated_unit public.organization_units%rowtype;
   audit_action text;
@@ -306,9 +337,8 @@ begin
     existing_unit.organization_id
   );
 
-  if normalized_code is null or normalized_code = ''
-    or normalized_name is null or normalized_name = '' then
-    raise exception 'Code and name are required' using errcode = '22023';
+  if normalized_name is null or normalized_name = '' then
+    raise exception 'Name is required' using errcode = '22023';
   end if;
 
   if normalized_status is null or normalized_status not in ('active', 'inactive', 'archived') then
@@ -333,14 +363,39 @@ begin
       using errcode = '22023';
   end if;
 
-  if exists (
-    select 1
-    from public.organization_units duplicate
-    where duplicate.organization_id = existing_unit.organization_id
-      and duplicate.id <> existing_unit.id
-      and lower(btrim(duplicate.code)) = lower(normalized_code)
-  ) then
-    raise exception 'Academic unit code already exists in this university' using errcode = '23505';
+  if code_was_generated then
+    normalized_code := upper(btrim(regexp_replace(
+      translate(normalized_name, 'ăâîșşțţĂÂÎȘŞȚŢ', 'aaissttAAISSTT'),
+      '[^A-Za-z0-9]+', '-', 'g'
+    ), '-'));
+    normalized_code := left(coalesce(nullif(normalized_code, ''), 'UNIT'), 100);
+    code_base := normalized_code;
+
+    while exists (
+      select 1
+      from public.organization_units duplicate
+      where duplicate.organization_id = existing_unit.organization_id
+        and duplicate.id <> existing_unit.id
+        and lower(btrim(duplicate.code)) = lower(normalized_code)
+    ) loop
+      suffix_text := '-' || code_suffix::text;
+      normalized_code := left(code_base, greatest(1, 100 - char_length(suffix_text))) || suffix_text;
+      code_suffix := code_suffix + 1;
+    end loop;
+  else
+    if char_length(normalized_code) > 100 then
+      raise exception 'Academic unit code must not exceed 100 characters' using errcode = '22023';
+    end if;
+
+    if exists (
+      select 1
+      from public.organization_units duplicate
+      where duplicate.organization_id = existing_unit.organization_id
+        and duplicate.id <> existing_unit.id
+        and lower(btrim(duplicate.code)) = lower(normalized_code)
+    ) then
+      raise exception 'Academic unit code already exists in this university' using errcode = '23505';
+    end if;
   end if;
 
   update public.organization_units unit

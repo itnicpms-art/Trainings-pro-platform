@@ -26,6 +26,7 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       <PageHeading eyebrow={t.eyebrow} title={t.title} description={t.description} />
+      <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-4 text-sm leading-6 text-violet-900">{t.universityScopeNote}</div>
       {overview === null ? (
         <AdminEmptyState icon={Landmark} title={t.unavailableTitle} description={t.unavailableDescription} label={dictionary.admin.common.noRecords} />
       ) : (

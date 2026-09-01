@@ -13,7 +13,7 @@ const optionalUuid = z.preprocess(
 const commonFields = {
   target_university_id: z.uuid(),
   parent_unit_id: optionalUuid,
-  code: z.string().trim().min(1).max(100),
+  code: z.string().trim().max(100),
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000),
   status: z.enum(["active", "inactive", "archived"]),

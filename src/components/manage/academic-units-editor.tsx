@@ -25,12 +25,24 @@ type Unit = AcademicUnitsEditorOverview["units"][number];
 
 const initialState: ActionState = { status: "idle" };
 
+function generateInternalCode(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 100);
+}
+
 function AcademicUnitForm({
   action,
   locale,
   targetUniversityId,
   faculties,
   translations: t,
+  unitType,
   unit,
 }: {
   action: MutationAction;
@@ -38,11 +50,14 @@ function AcademicUnitForm({
   targetUniversityId: string;
   faculties: Unit[];
   translations: EditorTranslations;
+  unitType: EditableAcademicUnitType;
   unit?: Unit;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
-  const [unitType, setUnitType] = useState<EditableAcademicUnitType>(unit?.unit_type ?? "faculty");
   const isDepartment = unitType === "department";
+  const [name, setName] = useState(unit?.name ?? "");
+  const [code, setCode] = useState(unit?.code ?? "");
+  const [codeEdited, setCodeEdited] = useState(Boolean(unit));
   const message = state.status === "success"
     ? state.intent === "create" ? t.messages.created : t.messages.updated
     : state.status === "error" && state.reason ? t.messages[state.reason] : null;
@@ -52,47 +67,37 @@ function AcademicUnitForm({
       <input type="hidden" name="intent" value={unit ? "update" : "create"} />
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="target_university_id" value={targetUniversityId} />
+      <input type="hidden" name="unit_type" value={unitType} />
       {unit ? <input type="hidden" name="unit_id" value={unit.id} /> : null}
 
-      <div className="space-y-2">
-        <Label htmlFor={`${unit?.id ?? "new"}-unit-type`}>{t.fields.type}</Label>
-        <select
-          id={`${unit?.id ?? "new"}-unit-type`}
-          name="unit_type"
-          value={unitType}
-          disabled={Boolean(unit)}
-          onChange={(event) => setUnitType(event.target.value as EditableAcademicUnitType)}
-          className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:bg-slate-50"
-        >
-          <option value="faculty">{t.types.faculty}</option>
-          <option value="department">{t.types.department}</option>
-        </select>
-        {unit ? <input type="hidden" name="unit_type" value={unit.unit_type} /> : null}
+      <div className="space-y-2 sm:col-span-2">
+        <p className="text-sm font-medium">{t.fields.type}</p>
+        <Badge variant="outline">{t.types[unitType]}</Badge>
       </div>
 
-      <div className="space-y-2">
+      {isDepartment ? <div className="space-y-2 sm:col-span-2">
         <Label htmlFor={`${unit?.id ?? "new"}-parent`}>{t.fields.parentFaculty}</Label>
-        <select
-          id={`${unit?.id ?? "new"}-parent`}
-          name="parent_unit_id"
-          defaultValue={unit?.parent_unit_id ?? ""}
-          disabled={!isDepartment}
-          required={isDepartment}
-          className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:bg-slate-50"
-        >
-          <option value="">{isDepartment ? t.parentPlaceholder : t.parentNotApplicable}</option>
+        <select id={`${unit?.id ?? "new"}-parent`} name="parent_unit_id" defaultValue={unit?.parent_unit_id ?? ""} required className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+          <option value="">{t.parentPlaceholder}</option>
           {faculties.map((faculty) => <option key={faculty.id} value={faculty.id}>{faculty.name}</option>)}
         </select>
-        {!isDepartment ? <input type="hidden" name="parent_unit_id" value="" /> : null}
-      </div>
+      </div> : <input type="hidden" name="parent_unit_id" value="" />}
 
       <div className="space-y-2">
-        <Label htmlFor={`${unit?.id ?? "new"}-code`}>{t.fields.code}</Label>
-        <Input id={`${unit?.id ?? "new"}-code`} name="code" defaultValue={unit?.code ?? ""} maxLength={100} required />
+        <Label htmlFor={`${unit?.id ?? "new"}-name`}>{t.fields.name}</Label>
+        <Input id={`${unit?.id ?? "new"}-name`} name="name" value={name} onChange={(event) => {
+          const nextName = event.target.value;
+          setName(nextName);
+          if (!codeEdited) setCode(generateInternalCode(nextName));
+        }} maxLength={200} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${unit?.id ?? "new"}-name`}>{t.fields.name}</Label>
-        <Input id={`${unit?.id ?? "new"}-name`} name="name" defaultValue={unit?.name ?? ""} maxLength={200} required />
+        <Label htmlFor={`${unit?.id ?? "new"}-code`}>{t.fields.code}</Label>
+        <Input id={`${unit?.id ?? "new"}-code`} name="code" value={code} onChange={(event) => {
+          setCode(event.target.value.toUpperCase().slice(0, 100));
+          setCodeEdited(true);
+        }} maxLength={100} />
+        <p className="text-xs leading-5 text-slate-500">{t.codeHelper}</p>
       </div>
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor={`${unit?.id ?? "new"}-description`}>{t.fields.description}</Label>
@@ -126,6 +131,7 @@ export function AcademicUnitsEditor({
   action: MutationAction;
 }) {
   const university = overview.selected_university;
+  const [createType, setCreateType] = useState<EditableAcademicUnitType | null>(null);
   if (!university) return null;
 
   const faculties = overview.units.filter((unit) => unit.unit_type === "faculty" && unit.status !== "archived");
@@ -139,12 +145,13 @@ export function AcademicUnitsEditor({
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><Building2 className="size-5" /></span>
             <div><CardTitle>{t.title}</CardTitle><CardDescription className="mt-1">{t.description}</CardDescription></div>
           </div>
-          <details className="group">
-            <summary className={cn(buttonVariants(), "brand-gradient cursor-pointer list-none [&::-webkit-details-marker]:hidden")}><Plus className="size-4" />{t.add}</summary>
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-              <AcademicUnitForm action={action} locale={locale} targetUniversityId={university.id} faculties={faculties} translations={t} />
-            </div>
-          </details>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setCreateType((current) => current === "faculty" ? null : "faculty")} className={cn(buttonVariants({ variant: createType === "faculty" ? "default" : "outline" }), createType === "faculty" && "brand-gradient")}><Plus className="size-4" />{t.addFaculty}</button>
+            <button type="button" onClick={() => setCreateType((current) => current === "department" ? null : "department")} className={cn(buttonVariants({ variant: createType === "department" ? "default" : "outline" }), createType === "department" && "brand-gradient")}><Plus className="size-4" />{t.addDepartment}</button>
+          </div>
+          {createType ? <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+            <AcademicUnitForm key={createType} action={action} locale={locale} targetUniversityId={university.id} faculties={faculties} translations={t} unitType={createType} />
+          </div> : null}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -157,7 +164,7 @@ export function AcademicUnitsEditor({
               </div>
               <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-blue-700"><Pencil className="size-3.5" />{t.edit}</span>
             </summary>
-            <AcademicUnitForm action={action} locale={locale} targetUniversityId={university.id} faculties={faculties} translations={t} unit={unit} />
+            <AcademicUnitForm action={action} locale={locale} targetUniversityId={university.id} faculties={faculties} translations={t} unitType={unit.unit_type} unit={unit} />
           </details>
         ))}
         <div className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 text-emerald-900"><ShieldCheck className="mt-0.5 size-4 shrink-0" /><div><p className="text-sm font-semibold">{t.auditTitle}</p><p className="mt-1 text-xs leading-5 text-emerald-800">{t.auditDescription}</p></div><CheckCircle2 className="ml-auto size-4 shrink-0" /></div>
