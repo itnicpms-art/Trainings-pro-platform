@@ -25,7 +25,9 @@ export default async function AppLayout({ children, params }: { children: ReactN
   const activeStatus = dictionary.app.profiles.statuses[activeProfile.status] ?? dictionary.shell.active;
 
   const dashboardVariant = dashboardContext.variant ?? "individualLearner";
-  const canAccessAcademicManagement = canAccessAcademicStructureManagement(dashboardContext.roleCodes, dashboardContext.academicContext?.university_id);
+  const scopedUniversityId = dashboardContext.academicContext?.university_id
+    ?? dashboardContext.roles.find((role) => role.code === "university_admin" && role.scopeType === "university")?.scopeId;
+  const canAccessAcademicManagement = canAccessAcademicStructureManagement(dashboardContext.roleCodes, scopedUniversityId);
   const canAccessOrganizationManagement = canAccessOrganizationStructureManagement(dashboardContext.roleCodes, activeProfile.organization_id);
   const profileOptions = profiles.filter((profile) => profile.status === "active").map((profile) => ({
     id: profile.id,

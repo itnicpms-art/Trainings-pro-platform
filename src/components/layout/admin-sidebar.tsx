@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, ClipboardCheck, FileClock, Globe2, LayoutDashboard, LibraryBig, LockKeyhole, ShieldCheck, UsersRound } from "lucide-react";
+import { Building2, ClipboardCheck, FileClock, Globe2, Landmark, LayoutDashboard, LibraryBig, LockKeyhole, ShieldCheck, UsersRound } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import type { Locale } from "@/i18n/config";
@@ -14,6 +14,7 @@ export function AdminSidebar({ locale, translations: t, navigation, mobile = fal
   const items = [
     { href: `/${locale}/admin`, label: navigation.overview, icon: LayoutDashboard },
     { href: `/${locale}/admin/organizations`, label: navigation.organizations, icon: Building2 },
+    { href: `/${locale}/admin/academic-structure`, label: navigation.academicStructure, icon: Landmark },
     { href: `/${locale}/admin/users`, label: navigation.users, icon: UsersRound },
     { href: `/${locale}/admin/roles`, label: navigation.roles, icon: ShieldCheck },
     { href: `/${locale}/admin/security`, label: navigation.security, icon: LockKeyhole },
