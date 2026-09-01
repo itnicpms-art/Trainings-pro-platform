@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Settings, UsersRound } from "lucide-react";
+import { Building2, House, Landmark, Settings, UsersRound } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { DashboardSidebarModules } from "@/components/dashboard/dashboard-sidebar-modules";
@@ -12,12 +12,16 @@ import type { Dictionary } from "@/i18n/dictionaries/ro";
 import type { DashboardVariant } from "@/lib/dashboard/dashboard-config";
 import { cn } from "@/lib/utils";
 
-export function AppSidebar({ locale, translations: t, dashboardTranslations, dashboardVariant, showOrganizationContext, activeProfileName, activeProfileStatus, mobile = false }: { locale: Locale; translations: Dictionary["shell"]; dashboardTranslations: Dictionary["app"]["dashboardShell"]; dashboardVariant: DashboardVariant; showOrganizationContext: boolean; activeProfileName: string; activeProfileStatus: string; mobile?: boolean }) {
+export function AppSidebar({ locale, translations: t, dashboardTranslations, structureTranslations, dashboardVariant, showOrganizationContext, canAccessAcademicManagement, canAccessOrganizationManagement, activeProfileName, activeProfileStatus, mobile = false }: { locale: Locale; translations: Dictionary["shell"]; dashboardTranslations: Dictionary["app"]["dashboardShell"]; structureTranslations: Dictionary["app"]["structureManagement"]; dashboardVariant: DashboardVariant; showOrganizationContext: boolean; canAccessAcademicManagement: boolean; canAccessOrganizationManagement: boolean; activeProfileName: string; activeProfileStatus: string; mobile?: boolean }) {
   const pathname = usePathname();
   const items = [
     { href: `/${locale}/app`, label: t.dashboard, icon: House },
     { href: `/${locale}/app/profiles`, label: t.profiles, icon: UsersRound },
     { href: `/${locale}/app/settings`, label: t.settings, icon: Settings },
+  ];
+  const managementItems = [
+    ...(canAccessAcademicManagement ? [{ href: `/${locale}/app/manage/academic`, label: structureTranslations.navigation.academic, icon: Landmark }] : []),
+    ...(canAccessOrganizationManagement ? [{ href: `/${locale}/app/manage/organization`, label: structureTranslations.navigation.organization, icon: Building2 }] : []),
   ];
   return (
     <div className={cn("flex h-full flex-col bg-white", !mobile && "border-r border-slate-200")}>
@@ -28,6 +32,7 @@ export function AppSidebar({ locale, translations: t, dashboardTranslations, das
           const active = pathname === href;
           return <Link key={href} href={href} className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors", active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-[#06113B]")}><Icon className="size-4" />{label}</Link>;
         })}
+        {managementItems.length ? <><div className="my-2 border-t border-slate-100" /><p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{structureTranslations.navigation.section}</p>{managementItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors", pathname === href ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-[#06113B]")}><Icon className="size-4" />{label}</Link>)}</> : null}
         <div className="my-2 border-t border-slate-100" />
         <DashboardSidebarModules variant={dashboardVariant} translations={dashboardTranslations} showOrganizationContext={showOrganizationContext} />
       </nav>

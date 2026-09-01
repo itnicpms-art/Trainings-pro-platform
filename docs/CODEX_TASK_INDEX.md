@@ -14,7 +14,8 @@
 | 003.1 | `tasks/TASK-003-1-home-context-readouts.md` | Readout-uri Acasă/Home pentru context academic și perioade organizaționale reale, prin RPC-uri scoped |
 | 003.2 | `tasks/TASK-003-2-secure-qa-context-seed.md` | Seed QA securizat și idempotent pentru context academic și perioade de training reale |
 | 003.3 | `tasks/TASK-003-3-home-workspace-cleanup.md` | Separă contextul real de modulele de lucru și desparte quiz-urile, testele și evaluările pe rol |
-| 004 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
+| 004 | `tasks/TASK-004-structure-management-ui-foundation.md` | Vizualizare read-only a structurii academice și organizaționale prin RPC-uri strict scoped |
+| 004.5 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
 | 007 | `TASK-007-sessions-webinars-consultations.md` | Course sessions, bookings, webinars, consultații live/async |
@@ -85,6 +86,13 @@ TASK 003.2 adaugă numai fixture-uri QA în tabelele TASK 003 prin scriptul loca
 - `docs/roadmap/TASK_003_3_COMPLETION_NOTES.md` — modificările UI, validările, confirmările de scope și lucrul amânat.
 
 TASK 003.3 este exclusiv o curățare de configurare UI, traduceri și documentație. Nu adaugă backend, migrare, date educaționale sau acțiuni de administrare.
+
+## Documentație TASK 004
+
+- `docs/tasks/TASK-004-structure-management-ui-foundation.md` — rutele, accesul scoped, RPC-urile read-only și limitele fundației;
+- `docs/roadmap/TASK_004_COMPLETION_NOTES.md` — scope, securitate, validări și lucru amânat.
+
+TASK 004 expune numai structura reală permisă profilului activ prin RPC-uri `SECURITY DEFINER`; nu acordă acces direct la tabele și nu implementează acțiuni de scriere.
 
 ## Reguli de execuție
 
