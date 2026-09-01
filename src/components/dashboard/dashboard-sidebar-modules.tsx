@@ -12,9 +12,7 @@ export function DashboardSidebarModules({ variant, translations: t, showOrganiza
     <div className="space-y-1">
       {modules.map((moduleKey) => {
         const Icon = dashboardModuleMeta[moduleKey].icon;
-        const title = moduleKey === "university" && variant === "universityAdmin"
-          ? t.academicStructure
-          : t.modules[moduleKey].title;
+        const title = t.modules[moduleKey].title;
         return (
           <div key={moduleKey} aria-disabled="true" title={`${title} · ${t.comingSoon}`} className="flex cursor-not-allowed items-center gap-2 rounded-xl px-3 py-1.5 text-[11px] font-medium text-slate-400">
             <Icon className="size-4 shrink-0" />

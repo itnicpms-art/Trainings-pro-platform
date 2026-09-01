@@ -58,16 +58,10 @@ export function AdaptiveDashboard({
     if (variant === "platformAdmin") return t.organizations;
     return t.organizationContext;
   })();
-  const moduleTitle = (moduleKey: DashboardModuleKey) => {
-    if (moduleKey === "university" && variant === "universityAdmin") return t.academicStructure;
-    return t.modules[moduleKey].title;
-  };
+  const moduleTitle = (moduleKey: DashboardModuleKey) => t.modules[moduleKey].title;
   const contextualValue = (moduleKey: DashboardModuleKey) => {
-    if (moduleKey === "organization") return trainingContext?.organization_name ?? profile.organizationName;
-    if (moduleKey === "university") return academicContext?.university_name;
     if (moduleKey === "representativeStatus") return statusLabel;
     if (moduleKey === "adminAccess" && canAccessPlatformAdmin) return t.available;
-    if (["academicProgram", "academicYear", "semester", "group"].includes(moduleKey)) return t.comingSoon;
     return null;
   };
 

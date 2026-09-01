@@ -18,25 +18,22 @@ export type DashboardModuleKey =
   | "training"
   | "assignments"
   | "quizzes"
+  | "tests"
   | "exams"
   | "projects"
   | "certificates"
   | "credits"
   | "activity"
   | "organizations"
-  | "organization"
-  | "academicProgram"
-  | "academicYear"
-  | "semester"
-  | "group"
   | "grades"
   | "academicCourses"
   | "taughtCourses"
   | "sessions"
   | "participants"
   | "evaluationAssignments"
+  | "evaluationQuizzes"
+  | "evaluationTests"
   | "evaluationProjects"
-  | "assessmentManagement"
   | "feedback"
   | "groupsPrograms"
   | "academicCalendar"
@@ -47,7 +44,8 @@ export type DashboardModuleKey =
   | "coordinatedPrograms"
   | "trainers"
   | "groups"
-  | "evaluations"
+  | "monitoredGroups"
+  | "organizationGroups"
   | "reports"
   | "pendingRequests"
   | "representativeStatus"
@@ -56,7 +54,7 @@ export type DashboardModuleKey =
   | "organizationalActivity"
   | "aggregateProgress"
   | "organizationCertificates"
-  | "university"
+  | "academicStructure"
   | "academicPrograms"
   | "academicYears"
   | "semesters"
@@ -79,28 +77,28 @@ type VariantConfig = {
 
 export const dashboardVariants: Record<DashboardVariant, VariantConfig> = {
   individualLearner: {
-    modules: ["courses", "assignments", "quizzes", "exams", "projects", "certificates", "credits", "activity", "organizations"],
-    sidebar: ["courses", "calendar", "assignments", "quizzes", "exams", "projects", "certificates", "credits", "documents"],
+    modules: ["courses", "assignments", "quizzes", "tests", "exams", "projects", "certificates", "credits", "activity"],
+    sidebar: ["courses", "calendar", "assignments", "quizzes", "tests", "exams", "projects", "certificates", "credits", "documents"],
     accent: "from-blue-600 via-indigo-600 to-cyan-500",
   },
   organizationLearner: {
-    modules: ["training", "assignments", "quizzes", "exams", "projects", "certificates", "credits", "organization", "activity"],
-    sidebar: ["training", "calendar", "assignments", "quizzes", "exams", "projects", "certificates", "credits", "organization"],
+    modules: ["training", "assignments", "quizzes", "tests", "exams", "projects", "certificates", "credits", "activity"],
+    sidebar: ["training", "calendar", "assignments", "quizzes", "tests", "exams", "projects", "certificates", "credits"],
     accent: "from-violet-600 via-indigo-600 to-blue-500",
   },
   academicStudent: {
-    modules: ["academicProgram", "academicYear", "semester", "group", "credits", "academicCourses", "assignments", "quizzes", "exams", "projects", "grades", "activity"],
-    sidebar: ["academicCourses", "academicCalendar", "assignments", "quizzes", "exams", "projects", "grades", "credits", "documents"],
+    modules: ["academicCourses", "assignments", "quizzes", "tests", "exams", "projects", "credits", "grades", "academicCalendar", "activity"],
+    sidebar: ["academicCourses", "academicCalendar", "assignments", "quizzes", "tests", "exams", "projects", "grades", "credits", "documents"],
     accent: "from-emerald-500 via-teal-500 to-cyan-500",
   },
   instructorTrainer: {
-    modules: ["taughtCourses", "sessions", "participants", "evaluationAssignments", "evaluationProjects", "assessmentManagement", "feedback", "activity"],
-    sidebar: ["taughtCourses", "sessions", "participants", "evaluations", "projects", "feedback", "documents"],
+    modules: ["taughtCourses", "sessions", "participants", "evaluationAssignments", "evaluationQuizzes", "evaluationTests", "exams", "evaluationProjects", "feedback", "activity"],
+    sidebar: ["taughtCourses", "sessions", "participants", "evaluationAssignments", "evaluationQuizzes", "evaluationTests", "exams", "evaluationProjects", "feedback", "documents"],
     accent: "from-orange-500 via-rose-500 to-violet-600",
   },
   professor: {
-    modules: ["academicCourses", "groupsPrograms", "evaluationAssignments", "evaluationProjects", "exams", "grades", "academicCalendar", "activity"],
-    sidebar: ["academicCourses", "groupsPrograms", "academicCalendar", "participants", "evaluations", "projects", "grades", "credits"],
+    modules: ["academicCourses", "groupsPrograms", "evaluationAssignments", "evaluationQuizzes", "evaluationTests", "exams", "evaluationProjects", "grades", "academicCalendar", "activity"],
+    sidebar: ["academicCourses", "groupsPrograms", "academicCalendar", "evaluationAssignments", "evaluationQuizzes", "evaluationTests", "exams", "evaluationProjects", "grades"],
     accent: "from-indigo-600 via-blue-600 to-cyan-500",
   },
   consultant: {
@@ -109,23 +107,23 @@ export const dashboardVariants: Record<DashboardVariant, VariantConfig> = {
     accent: "from-emerald-600 via-green-500 to-lime-400",
   },
   coordinator: {
-    modules: ["coordinatedPrograms", "courses", "trainers", "groups", "evaluations", "reports", "pendingRequests"],
-    sidebar: ["coordinatedPrograms", "courses", "trainers", "groups", "evaluations", "reports", "pendingRequests"],
+    modules: ["coordinatedPrograms", "courses", "trainers", "monitoredGroups", "assignments", "quizzes", "tests", "exams", "reports", "pendingRequests"],
+    sidebar: ["coordinatedPrograms", "courses", "trainers", "monitoredGroups", "assignments", "quizzes", "tests", "exams", "reports", "pendingRequests"],
     accent: "from-violet-600 via-blue-600 to-teal-500",
   },
   organizationRepresentative: {
-    modules: ["organization", "representativeStatus", "members", "invitations", "training", "reports", "organizationalActivity"],
-    sidebar: ["organization", "members", "invitations", "training", "reports", "pendingRequests"],
+    modules: ["representativeStatus", "members", "invitations", "training", "monitoredGroups", "reports", "organizationalActivity"],
+    sidebar: ["members", "invitations", "training", "monitoredGroups", "reports", "pendingRequests"],
     accent: "from-blue-600 via-indigo-600 to-violet-600",
   },
   organizationAdmin: {
-    modules: ["organization", "members", "invitations", "training", "aggregateProgress", "organizationCertificates", "pendingRequests", "reports"],
-    sidebar: ["organization", "members", "invitations", "training", "aggregateProgress", "organizationCertificates", "reports"],
+    modules: ["members", "invitations", "training", "organizationGroups", "aggregateProgress", "organizationCertificates", "pendingRequests", "reports"],
+    sidebar: ["members", "invitations", "training", "organizationGroups", "aggregateProgress", "organizationCertificates", "reports"],
     accent: "from-sky-600 via-blue-600 to-emerald-500",
   },
   universityAdmin: {
-    modules: ["university", "academicPrograms", "academicYears", "semesters", "groups", "students", "professors", "academicCourses", "aggregateResults", "reports"],
-    sidebar: ["university", "academicPrograms", "academicYears", "semesters", "groups", "students", "professors", "academicCourses", "reports"],
+    modules: ["academicStructure", "academicPrograms", "academicYears", "semesters", "groups", "students", "professors", "academicCourses", "aggregateResults", "reports"],
+    sidebar: ["academicStructure", "academicPrograms", "academicYears", "semesters", "groups", "students", "professors", "academicCourses", "reports"],
     accent: "from-indigo-600 via-blue-600 to-cyan-500",
   },
   platformAdmin: {
@@ -135,7 +133,7 @@ export const dashboardVariants: Record<DashboardVariant, VariantConfig> = {
   },
 };
 
-const organizationModuleKeys = new Set<DashboardModuleKey>(["organizations", "organization", "university"]);
+const organizationModuleKeys = new Set<DashboardModuleKey>(["organizations"]);
 
 function isPersonalLearnerProfile(profile: UserProfile) {
   return (
