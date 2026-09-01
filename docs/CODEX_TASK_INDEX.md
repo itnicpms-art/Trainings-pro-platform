@@ -13,6 +13,7 @@
 | 003 | `tasks/TASK-003-organizations-academic-structure.md` | Fundație securizată pentru universități, structură academică și perioade de training organizaționale |
 | 003.1 | `tasks/TASK-003-1-home-context-readouts.md` | Readout-uri Acasă/Home pentru context academic și perioade organizaționale reale, prin RPC-uri scoped |
 | 003.2 | `tasks/TASK-003-2-secure-qa-context-seed.md` | Seed QA securizat și idempotent pentru context academic și perioade de training reale |
+| 003.3 | `tasks/TASK-003-3-home-workspace-cleanup.md` | Separă contextul real de modulele de lucru și desparte quiz-urile, testele și evaluările pe rol |
 | 004 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
@@ -77,6 +78,13 @@ TASK 003.1 conectează Acasă/Home la contextul real al profilului activ. Studen
 - `docs/testing/QA_PROFILES_SEED.md` — ghidul operator actualizat pentru profiluri și context.
 
 TASK 003.2 adaugă numai fixture-uri QA în tabelele TASK 003 prin scriptul local/staging existent. Nu adaugă migrare, date de producție sau valori hardcodate în Acasă/Home.
+
+## Documentație TASK 003.3
+
+- `docs/tasks/TASK-003-3-home-workspace-cleanup.md` — regula context versus Workspace, matricea modulelor pe rol și limitele de date;
+- `docs/roadmap/TASK_003_3_COMPLETION_NOTES.md` — modificările UI, validările, confirmările de scope și lucrul amânat.
+
+TASK 003.3 este exclusiv o curățare de configurare UI, traduceri și documentație. Nu adaugă backend, migrare, date educaționale sau acțiuni de administrare.
 
 ## Reguli de execuție
 
