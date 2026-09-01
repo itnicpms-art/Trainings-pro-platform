@@ -31,8 +31,11 @@ type TopbarProps = {
   translations: Dictionary["shell"];
   adminNavigation?: Dictionary["admin"]["navigation"];
   dashboardTranslations?: Dictionary["app"]["dashboardShell"];
+  structureTranslations?: Dictionary["app"]["structureManagement"];
   dashboardVariant?: DashboardVariant;
   showOrganizationContext?: boolean;
+  canAccessAcademicManagement?: boolean;
+  canAccessOrganizationManagement?: boolean;
   languageLabel: string;
   accountName: string;
   profileLabel: string;
@@ -43,7 +46,7 @@ type TopbarProps = {
   profileSwitcherTranslations: ProfileSwitcherTranslations;
 };
 
-export function Topbar({ area, title, locale, translations: t, adminNavigation, dashboardTranslations, dashboardVariant, showOrganizationContext = false, languageLabel, accountName, profileLabel, activeProfileId, activeProfileName, activeProfileStatus, profiles, profileSwitcherTranslations: switcherT }: TopbarProps) {
+export function Topbar({ area, title, locale, translations: t, adminNavigation, dashboardTranslations, structureTranslations, dashboardVariant, showOrganizationContext = false, canAccessAcademicManagement = false, canAccessOrganizationManagement = false, languageLabel, accountName, profileLabel, activeProfileId, activeProfileName, activeProfileStatus, profiles, profileSwitcherTranslations: switcherT }: TopbarProps) {
   const router = useRouter();
   const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
   const initials = accountName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "TP";
@@ -77,7 +80,7 @@ export function Topbar({ area, title, locale, translations: t, adminNavigation, 
       <div className="flex items-center gap-3">
         <Sheet>
           <SheetTrigger render={<Button variant="outline" size="icon" className="lg:hidden" aria-label={t.openNavigation} />}><Menu /></SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0" closeLabel={t.close}><SheetHeader className="sr-only"><SheetTitle>{t.navigation}</SheetTitle><SheetDescription>{t.mainMenu}</SheetDescription></SheetHeader>{area === "app" && dashboardTranslations && dashboardVariant ? <AppSidebar locale={locale} translations={t} dashboardTranslations={dashboardTranslations} dashboardVariant={dashboardVariant} showOrganizationContext={showOrganizationContext} activeProfileName={activeProfileName} activeProfileStatus={activeProfileStatus} mobile /> : adminNavigation ? <AdminSidebar locale={locale} translations={t} navigation={adminNavigation} mobile /> : null}</SheetContent>
+          <SheetContent side="left" className="w-72 p-0" closeLabel={t.close}><SheetHeader className="sr-only"><SheetTitle>{t.navigation}</SheetTitle><SheetDescription>{t.mainMenu}</SheetDescription></SheetHeader>{area === "app" && dashboardTranslations && structureTranslations && dashboardVariant ? <AppSidebar locale={locale} translations={t} dashboardTranslations={dashboardTranslations} structureTranslations={structureTranslations} dashboardVariant={dashboardVariant} showOrganizationContext={showOrganizationContext} canAccessAcademicManagement={canAccessAcademicManagement} canAccessOrganizationManagement={canAccessOrganizationManagement} activeProfileName={activeProfileName} activeProfileStatus={activeProfileStatus} mobile /> : adminNavigation ? <AdminSidebar locale={locale} translations={t} navigation={adminNavigation} mobile /> : null}</SheetContent>
         </Sheet>
         <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{area === "app" ? t.mySpace : t.administration}</p><h1 className="text-lg font-semibold tracking-tight text-[#06113B]">{title}</h1></div>
       </div>

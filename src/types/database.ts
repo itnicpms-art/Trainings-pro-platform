@@ -8,6 +8,43 @@ type Json = string | number | boolean | null | { [key: string]: Json | undefined
 
 type Timestamped = { created_at: string };
 
+export type AcademicStructureManagementOverview = {
+  profile_id: string;
+  organization_id: string;
+  university_name: string;
+  active_context: {
+    university_id: string;
+    university_name: string;
+    organization_unit_id: string | null;
+    organization_unit_name: string | null;
+    academic_program_id: string | null;
+    academic_program_name: string | null;
+    program_level: AcademicProgramLevel | null;
+    academic_year_id: string | null;
+    academic_year_name: string | null;
+    academic_year_code: string | null;
+    academic_term_id: string | null;
+    academic_term_name: string | null;
+    academic_group_id: string | null;
+    academic_group_name: string | null;
+    academic_group_code: string | null;
+  };
+  organization_units: Array<{ id: string; parent_unit_id: string | null; unit_type: OrganizationUnitType; code: string; name: string; status: EntityStatus }>;
+  academic_programs: Array<{ id: string; organization_unit_id: string | null; code: string; name: string; program_level: AcademicProgramLevel; standard_duration_years: number | null; status: EntityStatus }>;
+  academic_years: Array<{ id: string; code: string; name: string; start_date: string; end_date: string; is_current: boolean; status: EntityStatus }>;
+  academic_terms: Array<{ id: string; academic_year_id: string; code: string; name: string; term_type: AcademicTermType; term_number: number | null; start_date: string; end_date: string; status: EntityStatus }>;
+  academic_groups: Array<{ id: string; academic_program_id: string; academic_year_id: string | null; academic_term_id: string | null; code: string; name: string; status: EntityStatus }>;
+};
+
+export type OrganizationStructureManagementOverview = {
+  profile_id: string;
+  organization_id: string;
+  organization_name: string;
+  organization_type: OrganizationType;
+  organization_status: EntityStatus;
+  training_periods: Array<{ id: string; code: string; name: string; start_date: string; end_date: string; is_current: boolean; status: EntityStatus }>;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -156,6 +193,14 @@ export type Database = {
           training_period_end_date: string | null;
           is_current: boolean | null;
         }[];
+      };
+      get_academic_structure_management_overview: {
+        Args: { requested_profile_id: string };
+        Returns: AcademicStructureManagementOverview;
+      };
+      get_organization_structure_management_overview: {
+        Args: { requested_profile_id: string };
+        Returns: OrganizationStructureManagementOverview;
       };
       has_platform_admin_console_access: {
         Args: { requested_profile_id: string };

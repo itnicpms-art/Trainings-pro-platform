@@ -3,10 +3,13 @@ import type { Dictionary } from "@/i18n/dictionaries/ro";
 import { dashboardModuleMeta } from "@/components/dashboard/dashboard-module-meta";
 import { dashboardVariants, isDashboardOrganizationModule, type DashboardVariant } from "@/lib/dashboard/dashboard-config";
 
-export function DashboardSidebarModules({ variant, translations: t, showOrganizationContext }: { variant: DashboardVariant; translations: Dictionary["app"]["dashboardShell"]; showOrganizationContext: boolean }) {
-  const modules = showOrganizationContext
+export function DashboardSidebarModules({ variant, translations: t, showOrganizationContext, hasAcademicManagementLink }: { variant: DashboardVariant; translations: Dictionary["app"]["dashboardShell"]; showOrganizationContext: boolean; hasAcademicManagementLink: boolean }) {
+  const contextualModules = showOrganizationContext
     ? dashboardVariants[variant].sidebar
     : dashboardVariants[variant].sidebar.filter((moduleKey) => !isDashboardOrganizationModule(moduleKey));
+  const modules = hasAcademicManagementLink
+    ? contextualModules.filter((moduleKey) => moduleKey !== "academicStructure")
+    : contextualModules;
 
   return (
     <div className="space-y-1">
