@@ -34,7 +34,7 @@ export function AppSidebar({ locale, translations: t, dashboardTranslations, str
         })}
         {managementItems.length ? <><div className="my-2 border-t border-slate-100" /><p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{structureTranslations.navigation.section}</p>{managementItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors", pathname === href ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-[#06113B]")}><Icon className="size-4" />{label}</Link>)}</> : null}
         <div className="my-2 border-t border-slate-100" />
-        <DashboardSidebarModules variant={dashboardVariant} translations={dashboardTranslations} showOrganizationContext={showOrganizationContext} />
+        <DashboardSidebarModules variant={dashboardVariant} translations={dashboardTranslations} showOrganizationContext={showOrganizationContext} hasAcademicManagementLink={canAccessAcademicManagement} />
       </nav>
       <div className="m-2.5 rounded-2xl bg-slate-50 p-2.5"><p className="text-xs font-semibold text-[#06113B]">{t.activeProfile}</p><p className="mt-0.5 truncate text-[11px] text-slate-500">{activeProfileName}</p><span className="mt-1.5 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">{activeProfileStatus}</span><div className="mt-2 [&>button]:h-9 [&>button]:w-full [&>button]:text-xs"><LogoutButton locale={locale} label={t.logout} /></div></div>
     </div>
