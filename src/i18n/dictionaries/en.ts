@@ -377,6 +377,7 @@ const en: Dictionary = {
           parentUnavailable: "Parent faculty unavailable",
           auditTitle: "Audited changes",
           auditDescription: "Every create, update, or status change is recorded by the secure RPC.",
+          hierarchyStatusNote: "When a faculty is deactivated or archived, active departments under it are updated automatically to keep the hierarchy consistent.",
           messages: {
             created: "The academic unit was created.",
             updated: "The academic unit was updated.",

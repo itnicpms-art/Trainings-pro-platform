@@ -11,9 +11,11 @@ The hierarchy remains:
 
 `University → Faculty → Department → Academic Program → Academic Year → Term / Semester → Group`
 
-A faculty belongs directly to a university and has no parent unit. A department must belong to an active or inactive faculty in the same university. Academic programs, years, terms, semesters, and groups remain read-only and receive no create or edit controls in this task.
+A faculty belongs directly to a university and has no parent unit. A department must belong to a valid faculty in the same university, and an active department requires an active parent faculty. A department may remain inactive or archived under an inactive faculty, but a department cannot be created or moved under an archived faculty. Academic programs, years, terms, semesters, and groups remain read-only and receive no create or edit controls in this task.
 
 No hard-delete function or button exists. Units can move only between `active`, `inactive`, and `archived` states.
+
+Faculty status changes preserve hierarchy consistency. Changing a faculty to `inactive` changes its active child departments to `inactive` while preserving children that are already inactive or archived. Changing a faculty to `archived` changes every non-archived child department to `archived`. Reactivating a faculty does not reactivate its departments; each department must be reviewed and reactivated manually.
 
 Universities themselves are managed separately in **Organizations & Universities**. TASK 004.1 does not add university create or edit behavior and does not change `/admin/organizations`.
 
@@ -45,7 +47,7 @@ No broad `SELECT`, `INSERT`, `UPDATE`, or `DELETE` policy is added. Direct audit
 
 ## Audit behavior
 
-Every successful create writes an audit event with the resulting row snapshot. Every successful update writes before and after snapshots. A status-changing update is identified as `status_change`. Failed authorization or validation does not mutate the unit and does not create an audit event.
+Every successful create writes an audit event with the resulting row snapshot. Every successful update writes before and after snapshots. A status-changing update is identified as `status_change`. Each department changed automatically by a faculty status cascade receives its own `status_change` audit row with the authenticated actor, active profile, actor mode, university, and full before/after snapshots. The faculty update keeps its normal audit row. Failed authorization or validation does not mutate the unit and does not create an audit event.
 
 ## Deferred work
 

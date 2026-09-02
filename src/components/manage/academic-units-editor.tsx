@@ -167,6 +167,7 @@ export function AcademicUnitsEditor({
             <AcademicUnitForm action={action} locale={locale} targetUniversityId={university.id} faculties={faculties} translations={t} unitType={unit.unit_type} unit={unit} />
           </details>
         ))}
+        <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-3 text-xs leading-5 text-amber-900">{t.hierarchyStatusNote}</div>
         <div className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 text-emerald-900"><ShieldCheck className="mt-0.5 size-4 shrink-0" /><div><p className="text-sm font-semibold">{t.auditTitle}</p><p className="mt-1 text-xs leading-5 text-emerald-800">{t.auditDescription}</p></div><CheckCircle2 className="ml-auto size-4 shrink-0" /></div>
       </CardContent>
     </Card>

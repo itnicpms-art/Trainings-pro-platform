@@ -202,6 +202,7 @@ declare
   code_base text;
   code_suffix integer := 2;
   suffix_text text;
+  parent_faculty_status text;
   created_unit public.organization_units%rowtype;
 begin
   actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, target_university_id);
@@ -222,18 +223,26 @@ begin
     raise exception 'Faculty cannot have a parent unit' using errcode = '22023';
   end if;
 
-  if normalized_type = 'department' and (
-    $3 is null or not exists (
-      select 1
-      from public.organization_units parent
-      where parent.id = $3
-        and parent.organization_id = target_university_id
-        and parent.unit_type = 'faculty'
-        and parent.status in ('active', 'inactive')
-    )
-  ) then
-    raise exception 'Department requires an active or inactive faculty in the same university'
-      using errcode = '22023';
+  if normalized_type = 'department' then
+    if $3 is null then
+      raise exception 'Department requires a faculty in the same university' using errcode = '22023';
+    end if;
+
+    select parent.status
+    into parent_faculty_status
+    from public.organization_units parent
+    where parent.id = $3
+      and parent.organization_id = target_university_id
+      and parent.unit_type = 'faculty'
+    for update;
+
+    if parent_faculty_status is null or parent_faculty_status not in ('active', 'inactive') then
+      raise exception 'Department cannot be created under this faculty' using errcode = '22023';
+    end if;
+
+    if normalized_status = 'active' and parent_faculty_status <> 'active' then
+      raise exception 'Active department requires an active faculty' using errcode = '22023';
+    end if;
   end if;
 
   if code_was_generated then
@@ -313,8 +322,14 @@ declare
   code_base text;
   code_suffix integer := 2;
   suffix_text text;
+  parent_faculty_status text;
+  cascade_status text;
+  existing_organization_id uuid;
+  existing_unit_type text;
   existing_unit public.organization_units%rowtype;
   updated_unit public.organization_units%rowtype;
+  child_before public.organization_units%rowtype;
+  child_after public.organization_units%rowtype;
   audit_action text;
 begin
   if auth.uid() is null then
@@ -325,17 +340,41 @@ begin
   into existing_unit
   from public.organization_units unit
   where unit.id = unit_id
-    and unit.unit_type in ('faculty', 'department')
-  for update;
+    and unit.unit_type in ('faculty', 'department');
 
   if existing_unit.id is null then
     raise exception 'Editable academic unit not found' using errcode = '22023';
   end if;
 
+  existing_organization_id := existing_unit.organization_id;
+  existing_unit_type := existing_unit.unit_type;
+
   actor_mode := public.resolve_academic_units_editor_mode(
     requested_profile_id,
-    existing_unit.organization_id
+    existing_organization_id
   );
+
+  if existing_unit.unit_type = 'department' then
+    perform 1
+    from public.organization_units parent
+    where parent.organization_id = existing_organization_id
+      and parent.unit_type = 'faculty'
+      and parent.id in (existing_unit.parent_unit_id, $3)
+    order by parent.id
+    for update;
+  end if;
+
+  select unit.*
+  into existing_unit
+  from public.organization_units unit
+  where unit.id = unit_id
+    and unit.organization_id = existing_organization_id
+    and unit.unit_type = existing_unit_type
+  for update;
+
+  if existing_unit.id is null then
+    raise exception 'Editable academic unit changed during update' using errcode = '40001';
+  end if;
 
   if normalized_name is null or normalized_name = '' then
     raise exception 'Name is required' using errcode = '22023';
@@ -349,18 +388,31 @@ begin
     raise exception 'Faculty cannot have a parent unit' using errcode = '22023';
   end if;
 
-  if existing_unit.unit_type = 'department' and (
-    $3 is null or not exists (
-      select 1
-      from public.organization_units parent
-      where parent.id = $3
-        and parent.organization_id = existing_unit.organization_id
-        and parent.unit_type = 'faculty'
-        and parent.status in ('active', 'inactive')
-    )
-  ) then
-    raise exception 'Department requires an active or inactive faculty in the same university'
-      using errcode = '22023';
+  if existing_unit.unit_type = 'department' then
+    if $3 is null then
+      raise exception 'Department requires a faculty in the same university' using errcode = '22023';
+    end if;
+
+    select parent.status
+    into parent_faculty_status
+    from public.organization_units parent
+    where parent.id = $3
+      and parent.organization_id = existing_unit.organization_id
+      and parent.unit_type = 'faculty';
+
+    if parent_faculty_status is null or parent_faculty_status not in ('active', 'inactive', 'archived') then
+      raise exception 'Department requires a valid faculty in the same university' using errcode = '22023';
+    end if;
+
+    if parent_faculty_status = 'archived'
+      and ($3 is distinct from existing_unit.parent_unit_id or normalized_status <> 'archived') then
+      raise exception 'Department cannot be moved under or reactivated within an archived faculty'
+        using errcode = '22023';
+    end if;
+
+    if normalized_status = 'active' and parent_faculty_status <> 'active' then
+      raise exception 'Active department requires an active faculty' using errcode = '22023';
+    end if;
   end if;
 
   if code_was_generated then
@@ -419,6 +471,39 @@ begin
     auth.uid(), requested_profile_id, actor_mode, audit_action, updated_unit.id,
     updated_unit.organization_id, to_jsonb(existing_unit), to_jsonb(updated_unit)
   );
+
+  if updated_unit.unit_type = 'faculty'
+    and existing_unit.status is distinct from updated_unit.status
+    and updated_unit.status in ('inactive', 'archived') then
+    cascade_status := updated_unit.status;
+
+    for child_before in
+      select department.*
+      from public.organization_units department
+      where department.organization_id = updated_unit.organization_id
+        and department.parent_unit_id = updated_unit.id
+        and department.unit_type = 'department'
+        and (
+          (cascade_status = 'inactive' and department.status = 'active')
+          or (cascade_status = 'archived' and department.status <> 'archived')
+        )
+      order by department.id
+      for update
+    loop
+      update public.organization_units department
+      set status = cascade_status
+      where department.id = child_before.id
+      returning department.* into child_after;
+
+      insert into public.academic_structure_audit_events (
+        actor_user_id, actor_profile_id, actor_role, action, resource_type, resource_id,
+        organization_id, before_snapshot, after_snapshot
+      ) values (
+        auth.uid(), requested_profile_id, actor_mode, 'status_change', 'organization_unit', child_after.id,
+        child_after.organization_id, to_jsonb(child_before), to_jsonb(child_after)
+      );
+    end loop;
+  end if;
 
   return to_jsonb(updated_unit);
 end;

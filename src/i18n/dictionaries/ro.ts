@@ -375,6 +375,7 @@ const ro = {
           parentUnavailable: "Facultate părinte indisponibilă",
           auditTitle: "Modificări auditate",
           auditDescription: "Fiecare creare, actualizare sau schimbare de status este înregistrată de RPC-ul securizat.",
+          hierarchyStatusNote: "Când o facultate este inactivată sau arhivată, departamentele active din acea facultate sunt actualizate automat pentru a respecta ierarhia.",
           messages: {
             created: "Unitatea academică a fost creată.",
             updated: "Unitatea academică a fost actualizată.",

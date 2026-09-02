@@ -10,6 +10,9 @@
 - Reused one bilingual faculty/department editor in both authorized workspaces.
 - Split faculty and department creation into separate, explicit controls; the parent-faculty selector appears only for departments.
 - Added automatic, editable internal-code generation with Romanian diacritic removal and collision suffixes.
+- Enforced parent-status consistency: an active department requires an active faculty, and departments cannot be created or moved under archived faculties.
+- Added faculty status cascades: inactive faculties deactivate active child departments, archived faculties archive every non-archived child department, and faculty reactivation never reactivates departments automatically.
+- Added one complete audit event for every department status changed by a faculty cascade while retaining the faculty update audit event.
 - Clarified that universities remain managed separately in Organizations & Universities; this task adds no university create/edit workflow.
 - Kept programs, years, semesters/terms, and groups read-only.
 
@@ -25,6 +28,7 @@
 - No service-role key, secret, environment file, fake organization, fake unit, or fake metric was added.
 - No DELETE RPC or hard-delete UI exists.
 - An empty code is generated server-side from the name; manually provided duplicate codes still fail explicitly.
+- Faculty status cascades and parent-status checks execute inside the scoped update RPC transaction; they add no direct table-write path or broader grant.
 
 ## Validation
 
@@ -43,8 +47,13 @@ After migration 007 is applied, verify:
 - generated internal codes are uppercase, safe, no longer contain Romanian diacritics, and receive `-2`, `-3`, and later suffixes on collisions;
 - manually edited codes remain unchanged by later name edits and duplicate manual codes are rejected;
 - University Admin cannot create a department without a parent or edit another university;
+- an active department cannot be created, moved, or reactivated beneath an inactive faculty;
+- no department can be created or moved beneath an archived faculty;
+- changing a faculty to inactive changes only its active child departments to inactive and preserves archived children;
+- changing a faculty to archived archives every active or inactive child department;
+- changing a faculty back to active does not reactivate any child department;
 - Platform Admin can select a real university and create/update its faculties and departments;
-- each successful create/update/status change produces an audit row;
+- each successful create/update/status change produces an audit row, including one row per department changed by a faculty cascade;
 - Professor, Coordinator, Academic Student, organization roles, and Individual Learner have no write controls or successful write access;
 - no delete control exists;
 - the Platform Admin page clearly directs university creation/management to Organizations & Universities and exposes no university creation button;
