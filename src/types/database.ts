@@ -3,6 +3,8 @@ import type { EntityStatus, OnboardingFlow, OrganizationType, PermissionScope, P
 export type AcademicProgramLevel = "bachelor" | "master" | "phd" | "postgraduate" | "other";
 export type AcademicTermType = "semester" | "trimester" | "module" | "term" | "other";
 export type OrganizationUnitType = "faculty" | "department" | "school" | "center" | "campus" | "administrative_unit" | "other";
+export type EditableAcademicUnitType = Extract<OrganizationUnitType, "faculty" | "department">;
+export type EditableAcademicUnitStatus = Extract<EntityStatus, "active" | "inactive" | "archived">;
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -43,6 +45,25 @@ export type OrganizationStructureManagementOverview = {
   organization_type: OrganizationType;
   organization_status: EntityStatus;
   training_periods: Array<{ id: string; code: string; name: string; start_date: string; end_date: string; is_current: boolean; status: EntityStatus }>;
+};
+
+export type AcademicUnitsEditorOverview = {
+  actor_profile_id: string;
+  actor_mode: "university_admin" | "platform_admin";
+  selected_university: { id: string; name: string; status: EntityStatus } | null;
+  universities: Array<{ id: string; name: string; status: EntityStatus }>;
+  units: Array<{
+    id: string;
+    organization_id: string;
+    parent_unit_id: string | null;
+    unit_type: EditableAcademicUnitType;
+    code: string;
+    name: string;
+    description: string | null;
+    status: EditableAcademicUnitStatus;
+    created_at: string;
+    updated_at: string;
+  }>;
 };
 
 export type Database = {
@@ -88,6 +109,12 @@ export type Database = {
         Row: Timestamped & { id: string; profile_id: string; organization_id: string; organization_unit_id: string | null; academic_program_id: string | null; academic_year_id: string | null; academic_term_id: string | null; academic_group_id: string | null; status: EntityStatus; is_primary: boolean; started_at: string | null; ended_at: string | null; updated_at: string };
         Insert: { id?: string; profile_id: string; organization_id: string; organization_unit_id?: string | null; academic_program_id?: string | null; academic_year_id?: string | null; academic_term_id?: string | null; academic_group_id?: string | null; status?: EntityStatus; is_primary?: boolean; started_at?: string | null; ended_at?: string | null; created_at?: string; updated_at?: string };
         Update: { organization_id?: string; organization_unit_id?: string | null; academic_program_id?: string | null; academic_year_id?: string | null; academic_term_id?: string | null; academic_group_id?: string | null; status?: EntityStatus; is_primary?: boolean; started_at?: string | null; ended_at?: string | null; updated_at?: string };
+        Relationships: [];
+      };
+      academic_structure_audit_events: {
+        Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "organization_unit"; resource_id: string | null; organization_id: string; before_snapshot: Json | null; after_snapshot: Json | null };
+        Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type?: "organization_unit"; resource_id?: string | null; organization_id: string; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
+        Update: never;
         Relationships: [];
       };
       organization_training_periods: {
@@ -201,6 +228,35 @@ export type Database = {
       get_organization_structure_management_overview: {
         Args: { requested_profile_id: string };
         Returns: OrganizationStructureManagementOverview;
+      };
+      get_academic_units_editor_overview: {
+        Args: { requested_profile_id: string; target_university_id?: string | null };
+        Returns: AcademicUnitsEditorOverview;
+      };
+      create_academic_unit: {
+        Args: {
+          requested_profile_id: string;
+          target_university_id: string;
+          parent_unit_id: string | null;
+          unit_type: EditableAcademicUnitType;
+          code: string;
+          name: string;
+          description: string | null;
+          status?: EditableAcademicUnitStatus;
+        };
+        Returns: AcademicUnitsEditorOverview["units"][number];
+      };
+      update_academic_unit: {
+        Args: {
+          requested_profile_id: string;
+          unit_id: string;
+          parent_unit_id: string | null;
+          code: string;
+          name: string;
+          description: string | null;
+          status: EditableAcademicUnitStatus;
+        };
+        Returns: AcademicUnitsEditorOverview["units"][number];
       };
       has_platform_admin_console_access: {
         Args: { requested_profile_id: string };

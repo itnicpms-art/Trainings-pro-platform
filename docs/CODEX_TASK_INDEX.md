@@ -15,6 +15,7 @@
 | 003.2 | `tasks/TASK-003-2-secure-qa-context-seed.md` | Seed QA securizat și idempotent pentru context academic și perioade de training reale |
 | 003.3 | `tasks/TASK-003-3-home-workspace-cleanup.md` | Separă contextul real de modulele de lucru și desparte quiz-urile, testele și evaluările pe rol |
 | 004 | `tasks/TASK-004-structure-management-ui-foundation.md` | Vizualizare read-only a structurii academice și organizaționale prin RPC-uri strict scoped |
+| 004.1 | `tasks/TASK-004-1-academic-units-editable-management.md` | Editare auditată și strict scoped pentru facultăți și departamente |
 | 004.5 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
@@ -93,6 +94,13 @@ TASK 003.3 este exclusiv o curățare de configurare UI, traduceri și documenta
 - `docs/roadmap/TASK_004_COMPLETION_NOTES.md` — scope, securitate, validări și lucru amânat.
 
 TASK 004 expune numai structura reală permisă profilului activ prin RPC-uri `SECURITY DEFINER`; nu acordă acces direct la tabele și nu implementează acțiuni de scriere.
+
+## Documentație TASK 004.1
+
+- `docs/tasks/TASK-004-1-academic-units-editable-management.md` — domeniul editabil, ierarhia, autorizarea, RPC-urile și auditul;
+- `docs/roadmap/TASK_004_1_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
+
+TASK 004.1 permite numai crearea și actualizarea facultăților/departamentelor prin RPC-uri auditate. University Admin este limitat la propria universitate, Platform Admin lucrează exclusiv din `/admin`, iar programele, anii, semestrele și grupele rămân read-only.
 
 ## Reguli de execuție
 
