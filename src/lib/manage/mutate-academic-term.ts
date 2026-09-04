@@ -23,7 +23,7 @@ const academicTermMutationSchema = z.discriminatedUnion("intent", [
 export type AcademicTermActionState = {
   status: "idle" | "success" | "error";
   intent?: "create" | "update";
-  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable";
+  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable" | "dateRange" | "outsideYear" | "archivedParent" | "inactiveParent";
 };
 
 export const initialAcademicTermActionState: AcademicTermActionState = { status: "idle" };
@@ -31,6 +31,38 @@ export const initialAcademicTermActionState: AcademicTermActionState = { status:
 function safeFormValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+// create_academic_term/update_academic_term (migration 010) raise every business-rule
+// violation with errcode 22023, distinguished only by message text. These strings are
+// authored in that migration and are matched verbatim here instead of widening the
+// RPC's error surface with new SQLSTATEs.
+const DATE_RANGE_MESSAGES = new Set([
+  "Academic term start date must be earlier than the end date",
+]);
+const OUTSIDE_YEAR_MESSAGES = new Set([
+  "Academic term dates must stay within the academic year period",
+]);
+const ARCHIVED_PARENT_MESSAGES = new Set([
+  "Academic term cannot be created under an archived academic year",
+  "Academic term cannot be moved under or reactivated within an archived academic year",
+]);
+const INACTIVE_PARENT_MESSAGES = new Set([
+  "Active academic term requires an active academic year",
+]);
+
+function mapAcademicTermError(error: { code?: string; message?: string }): NonNullable<AcademicTermActionState["reason"]> {
+  if (error.code === "23505") return "duplicate";
+  if (error.code === "42501") return "forbidden";
+  if (error.code === "22023") {
+    const message = error.message ?? "";
+    if (DATE_RANGE_MESSAGES.has(message)) return "dateRange";
+    if (OUTSIDE_YEAR_MESSAGES.has(message)) return "outsideYear";
+    if (ARCHIVED_PARENT_MESSAGES.has(message)) return "archivedParent";
+    if (INACTIVE_PARENT_MESSAGES.has(message)) return "inactiveParent";
+    return "invalid";
+  }
+  return "unavailable";
 }
 
 export async function mutateAcademicTerm(formData: FormData): Promise<AcademicTermActionState> {
@@ -82,7 +114,5 @@ export async function mutateAcademicTerm(formData: FormData): Promise<AcademicTe
       });
 
   if (!result.error) return { status: "success", intent: input.intent };
-  if (result.error.code === "23505") return { status: "error", intent: input.intent, reason: "duplicate" };
-  if (result.error.code === "42501") return { status: "error", intent: input.intent, reason: "forbidden" };
-  return { status: "error", intent: input.intent, reason: "unavailable" };
+  return { status: "error", intent: input.intent, reason: mapAcademicTermError(result.error) };
 }

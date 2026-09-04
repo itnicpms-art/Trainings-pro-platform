@@ -10,21 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
+import type { AcademicTermActionState } from "@/lib/manage/mutate-academic-term";
 import { cn } from "@/lib/utils";
 import type { AcademicCalendarEditorOverview, AcademicTermType } from "@/types/database";
 
-type ActionState = {
-  status: "idle" | "success" | "error";
-  intent?: "create" | "update";
-  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable";
-};
-
-type MutationAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
+type MutationAction = (state: AcademicTermActionState, formData: FormData) => Promise<AcademicTermActionState>;
 type EditorTranslations = Dictionary["app"]["structureManagement"]["academic"]["termsEditor"];
 type AcademicTerm = AcademicCalendarEditorOverview["academic_terms"][number];
 type AcademicYear = AcademicCalendarEditorOverview["academic_years"][number];
+type TermStatus = "active" | "inactive" | "archived";
 
-const initialState: ActionState = { status: "idle" };
+const initialState: AcademicTermActionState = { status: "idle" };
 const termTypes: AcademicTermType[] = ["semester", "trimester", "module", "term", "other"];
 
 function generateInternalCode(name: string) {
@@ -56,9 +52,15 @@ function AcademicTermForm({
   term?: AcademicTerm;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [academicYearId, setAcademicYearId] = useState(term?.academic_year_id ?? "");
   const [name, setName] = useState(term?.name ?? "");
   const [code, setCode] = useState(term?.code ?? "");
   const [codeEdited, setCodeEdited] = useState(Boolean(term));
+  const [termType, setTermType] = useState<AcademicTermType>(term?.term_type ?? "semester");
+  const [startDate, setStartDate] = useState(term?.start_date ?? "");
+  const [endDate, setEndDate] = useState(term?.end_date ?? "");
+  const [status, setStatus] = useState<TermStatus>(term?.status ?? "active");
+
   const message = state.status === "success"
     ? state.intent === "create" ? t.messages.created : t.messages.updated
     : state.status === "error" && state.reason ? t.messages[state.reason] : null;
@@ -72,7 +74,7 @@ function AcademicTermForm({
 
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor={`${term?.id ?? "new"}-year`}>{t.fields.year}</Label>
-        <select id={`${term?.id ?? "new"}-year`} name="academic_year_id" defaultValue={term?.academic_year_id ?? ""} required className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+        <select id={`${term?.id ?? "new"}-year`} name="academic_year_id" value={academicYearId} onChange={(event) => setAcademicYearId(event.target.value)} required className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
           <option value="" disabled>{t.yearPlaceholder}</option>
           {years.map((year) => <option key={year.id} value={year.id}>{year.name}</option>)}
         </select>
@@ -95,13 +97,13 @@ function AcademicTermForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${term?.id ?? "new"}-type`}>{t.fields.type}</Label>
-        <select id={`${term?.id ?? "new"}-type`} name="term_type" defaultValue={term?.term_type ?? "semester"} className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+        <select id={`${term?.id ?? "new"}-type`} name="term_type" value={termType} onChange={(event) => setTermType(event.target.value as AcademicTermType)} className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
           {termTypes.map((type) => <option key={type} value={type}>{typeLabels[type]}</option>)}
         </select>
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${term?.id ?? "new"}-status`}>{t.fields.status}</Label>
-        <select id={`${term?.id ?? "new"}-status`} name="status" defaultValue={term?.status ?? "active"} className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+        <select id={`${term?.id ?? "new"}-status`} name="status" value={status} onChange={(event) => setStatus(event.target.value as TermStatus)} className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
           <option value="active">{t.statuses.active}</option>
           <option value="inactive">{t.statuses.inactive}</option>
           <option value="archived">{t.statuses.archived}</option>
@@ -109,11 +111,11 @@ function AcademicTermForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${term?.id ?? "new"}-start`}>{t.fields.startDate}</Label>
-        <Input id={`${term?.id ?? "new"}-start`} name="start_date" type="date" defaultValue={term?.start_date ?? ""} required />
+        <Input id={`${term?.id ?? "new"}-start`} name="start_date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required />
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${term?.id ?? "new"}-end`}>{t.fields.endDate}</Label>
-        <Input id={`${term?.id ?? "new"}-end`} name="end_date" type="date" defaultValue={term?.end_date ?? ""} required />
+        <Input id={`${term?.id ?? "new"}-end`} name="end_date" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} required />
       </div>
       <div className="flex items-end justify-end gap-3 sm:col-span-2">
         {message ? <p role="status" className={cn("text-xs", state.status === "success" ? "text-emerald-700" : "text-rose-700")}>{message}</p> : null}
@@ -155,7 +157,10 @@ export function AcademicTermsEditor({
             <button type="button" onClick={() => setCreating((current) => !current)} className={cn(buttonVariants({ variant: creating ? "default" : "outline" }), creating && "brand-gradient")}><Plus className="size-4" />{t.add}</button>
           </div>
           {creating ? <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-            <AcademicTermForm action={action} locale={locale} targetUniversityId={university.id} years={years} typeLabels={typeLabels} translations={t} />
+            {/* Keyed on the row count so a successful create (which adds a row and
+                revalidates) remounts the form with blank fields, while a failed
+                create (no new row) leaves the user's entered values untouched. */}
+            <AcademicTermForm key={overview.academic_terms.length} action={action} locale={locale} targetUniversityId={university.id} years={years} typeLabels={typeLabels} translations={t} />
           </div> : null}
         </div>
       </CardHeader>

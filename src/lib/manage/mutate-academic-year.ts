@@ -21,7 +21,7 @@ const academicYearMutationSchema = z.discriminatedUnion("intent", [
 export type AcademicYearActionState = {
   status: "idle" | "success" | "error";
   intent?: "create" | "update";
-  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable";
+  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable" | "dateRange" | "outsideYear";
 };
 
 export const initialAcademicYearActionState: AcademicYearActionState = { status: "idle" };
@@ -29,6 +29,29 @@ export const initialAcademicYearActionState: AcademicYearActionState = { status:
 function safeFormValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+// create_academic_year/update_academic_year (migration 010) raise every business-rule
+// violation with errcode 22023, distinguished only by message text. These strings are
+// authored in that migration and are matched verbatim here instead of widening the
+// RPC's error surface with new SQLSTATEs.
+const DATE_RANGE_MESSAGES = new Set([
+  "Academic year start date must be earlier than the end date",
+]);
+const OUTSIDE_YEAR_MESSAGES = new Set([
+  "Academic year dates cannot exclude an existing semester or term",
+]);
+
+function mapAcademicYearError(error: { code?: string; message?: string }): NonNullable<AcademicYearActionState["reason"]> {
+  if (error.code === "23505") return "duplicate";
+  if (error.code === "42501") return "forbidden";
+  if (error.code === "22023") {
+    const message = error.message ?? "";
+    if (DATE_RANGE_MESSAGES.has(message)) return "dateRange";
+    if (OUTSIDE_YEAR_MESSAGES.has(message)) return "outsideYear";
+    return "invalid";
+  }
+  return "unavailable";
 }
 
 export async function mutateAcademicYear(formData: FormData): Promise<AcademicYearActionState> {
@@ -74,7 +97,5 @@ export async function mutateAcademicYear(formData: FormData): Promise<AcademicYe
       });
 
   if (!result.error) return { status: "success", intent: input.intent };
-  if (result.error.code === "23505") return { status: "error", intent: input.intent, reason: "duplicate" };
-  if (result.error.code === "42501") return { status: "error", intent: input.intent, reason: "forbidden" };
-  return { status: "error", intent: input.intent, reason: "unavailable" };
+  return { status: "error", intent: input.intent, reason: mapAcademicYearError(result.error) };
 }

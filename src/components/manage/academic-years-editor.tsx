@@ -10,20 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
+import type { AcademicYearActionState } from "@/lib/manage/mutate-academic-year";
 import { cn } from "@/lib/utils";
 import type { AcademicCalendarEditorOverview } from "@/types/database";
 
-type ActionState = {
-  status: "idle" | "success" | "error";
-  intent?: "create" | "update";
-  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable";
-};
-
-type MutationAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
+type MutationAction = (state: AcademicYearActionState, formData: FormData) => Promise<AcademicYearActionState>;
 type EditorTranslations = Dictionary["app"]["structureManagement"]["academic"]["yearsEditor"];
 type AcademicYear = AcademicCalendarEditorOverview["academic_years"][number];
+type YearStatus = "active" | "inactive" | "archived";
 
-const initialState: ActionState = { status: "idle" };
+const initialState: AcademicYearActionState = { status: "idle" };
 
 function generateInternalCode(name: string) {
   return name
@@ -53,6 +49,10 @@ function AcademicYearForm({
   const [name, setName] = useState(year?.name ?? "");
   const [code, setCode] = useState(year?.code ?? "");
   const [codeEdited, setCodeEdited] = useState(Boolean(year));
+  const [startDate, setStartDate] = useState(year?.start_date ?? "");
+  const [endDate, setEndDate] = useState(year?.end_date ?? "");
+  const [status, setStatus] = useState<YearStatus>(year?.status ?? "active");
+
   const message = state.status === "success"
     ? state.intent === "create" ? t.messages.created : t.messages.updated
     : state.status === "error" && state.reason ? t.messages[state.reason] : null;
@@ -82,15 +82,15 @@ function AcademicYearForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${year?.id ?? "new"}-start`}>{t.fields.startDate}</Label>
-        <Input id={`${year?.id ?? "new"}-start`} name="start_date" type="date" defaultValue={year?.start_date ?? ""} required />
+        <Input id={`${year?.id ?? "new"}-start`} name="start_date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} required />
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${year?.id ?? "new"}-end`}>{t.fields.endDate}</Label>
-        <Input id={`${year?.id ?? "new"}-end`} name="end_date" type="date" defaultValue={year?.end_date ?? ""} required />
+        <Input id={`${year?.id ?? "new"}-end`} name="end_date" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} required />
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${year?.id ?? "new"}-status`}>{t.fields.status}</Label>
-        <select id={`${year?.id ?? "new"}-status`} name="status" defaultValue={year?.status ?? "active"} className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+        <select id={`${year?.id ?? "new"}-status`} name="status" value={status} onChange={(event) => setStatus(event.target.value as YearStatus)} className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
           <option value="active">{t.statuses.active}</option>
           <option value="inactive">{t.statuses.inactive}</option>
           <option value="archived">{t.statuses.archived}</option>
@@ -131,7 +131,10 @@ export function AcademicYearsEditor({
             <button type="button" onClick={() => setCreating((current) => !current)} className={cn(buttonVariants({ variant: creating ? "default" : "outline" }), creating && "brand-gradient")}><Plus className="size-4" />{t.add}</button>
           </div>
           {creating ? <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-            <AcademicYearForm action={action} locale={locale} targetUniversityId={university.id} translations={t} />
+            {/* Keyed on the row count so a successful create (which adds a row and
+                revalidates) remounts the form with blank fields, while a failed
+                create (no new row) leaves the user's entered values untouched. */}
+            <AcademicYearForm key={overview.academic_years.length} action={action} locale={locale} targetUniversityId={university.id} translations={t} />
           </div> : null}
         </div>
       </CardHeader>
