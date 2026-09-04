@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { isLocale } from "@/i18n/config";
+import { mutateAcademicGroup, type AcademicGroupActionState } from "@/lib/manage/mutate-academic-group";
 import { mutateAcademicProgram, type AcademicProgramActionState } from "@/lib/manage/mutate-academic-program";
 import { mutateAcademicTerm, type AcademicTermActionState } from "@/lib/manage/mutate-academic-term";
 import { mutateAcademicUnit, type AcademicUnitActionState } from "@/lib/manage/mutate-academic-unit";
@@ -49,6 +50,18 @@ export async function mutateAdminAcademicTermAction(
   formData: FormData,
 ): Promise<AcademicTermActionState> {
   const result = await mutateAcademicTerm(formData);
+  const locale = formData.get("locale");
+  if (result.status === "success" && typeof locale === "string" && isLocale(locale)) {
+    revalidatePath(`/${locale}/admin/academic-structure`);
+  }
+  return result;
+}
+
+export async function mutateAdminAcademicGroupAction(
+  _previousState: AcademicGroupActionState,
+  formData: FormData,
+): Promise<AcademicGroupActionState> {
+  const result = await mutateAcademicGroup(formData);
   const locale = formData.get("locale");
   if (result.status === "success" && typeof locale === "string" && isLocale(locale)) {
     revalidatePath(`/${locale}/admin/academic-structure`);
