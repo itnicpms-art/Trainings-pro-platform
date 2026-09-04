@@ -14,6 +14,7 @@ import { getAcademicGroupsEditor } from "@/lib/manage/get-academic-groups-editor
 import { getAcademicProgramsEditor } from "@/lib/manage/get-academic-programs-editor";
 import { getAcademicStructureManagement } from "@/lib/manage/get-academic-structure-management";
 import { getAcademicUnitsEditor } from "@/lib/manage/get-academic-units-editor";
+import { getStudentGroupMembershipEditor } from "@/lib/manage/get-student-group-membership-editor";
 import { canAccessAcademicStructureManagement } from "@/lib/manage/structure-management-access";
 import {
   mutateUniversityAcademicGroupAction,
@@ -21,6 +22,7 @@ import {
   mutateUniversityAcademicTermAction,
   mutateUniversityAcademicUnitAction,
   mutateUniversityAcademicYearAction,
+  mutateUniversityStudentGroupMembershipAction,
 } from "./actions";
 
 export default async function AcademicStructureManagementPage({ params }: { params: LocaleParams }) {
@@ -36,12 +38,13 @@ export default async function AcademicStructureManagementPage({ params }: { para
   if (!allowed) return <StructureRestricted locale={locale} translations={t.common} />;
 
   const isUniversityAdmin = context.roleCodes.has("university_admin");
-  const [overview, editorOverview, programsEditorOverview, calendarEditorOverview, groupsEditorOverview] = await Promise.all([
+  const [overview, editorOverview, programsEditorOverview, calendarEditorOverview, groupsEditorOverview, membershipEditorOverview] = await Promise.all([
     getAcademicStructureManagement(context.activeProfile.id),
     isUniversityAdmin ? getAcademicUnitsEditor(context.activeProfile.id) : Promise.resolve(null),
     isUniversityAdmin ? getAcademicProgramsEditor(context.activeProfile.id) : Promise.resolve(null),
     isUniversityAdmin ? getAcademicCalendarEditor(context.activeProfile.id) : Promise.resolve(null),
     isUniversityAdmin ? getAcademicGroupsEditor(context.activeProfile.id) : Promise.resolve(null),
+    isUniversityAdmin ? getStudentGroupMembershipEditor(context.activeProfile.id) : Promise.resolve(null),
   ]);
   if (!overview && editorOverview?.selected_university) {
     return (
@@ -75,6 +78,9 @@ export default async function AcademicStructureManagementPage({ params }: { para
               overview={groupsEditorOverview}
               translations={t.academic.groupsEditor}
               action={mutateUniversityAcademicGroupAction}
+              membershipOverview={membershipEditorOverview}
+              membershipTranslations={t.academic.membershipEditor}
+              membershipAction={mutateUniversityStudentGroupMembershipAction}
             />
           ) : null}
         </div>
@@ -96,6 +102,8 @@ export default async function AcademicStructureManagementPage({ params }: { para
       termAction={isUniversityAdmin ? mutateUniversityAcademicTermAction : undefined}
       groupsEditorOverview={groupsEditorOverview}
       groupAction={isUniversityAdmin ? mutateUniversityAcademicGroupAction : undefined}
+      membershipEditorOverview={membershipEditorOverview}
+      membershipAction={isUniversityAdmin ? mutateUniversityStudentGroupMembershipAction : undefined}
     />
   );
 }

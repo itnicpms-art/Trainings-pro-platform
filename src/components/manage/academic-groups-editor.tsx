@@ -3,6 +3,7 @@
 import { useActionState, useState, type FormEvent } from "react";
 import { CheckCircle2, Pencil, Plus, ShieldCheck, TriangleAlert, UsersRound } from "lucide-react";
 
+import { GroupMembershipPanel } from "@/components/manage/group-membership-panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +12,12 @@ import { Label } from "@/components/ui/label";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
 import type { AcademicGroupActionState } from "@/lib/manage/mutate-academic-group";
+import type { StudentGroupMembershipActionState } from "@/lib/manage/mutate-student-group-membership";
 import { cn } from "@/lib/utils";
-import type { AcademicGroupsEditorOverview } from "@/types/database";
+import type { AcademicGroupsEditorOverview, StudentGroupMembershipEditorOverview } from "@/types/database";
 
 type MutationAction = (state: AcademicGroupActionState, formData: FormData) => Promise<AcademicGroupActionState>;
+type MembershipMutationAction = (state: StudentGroupMembershipActionState, formData: FormData) => Promise<StudentGroupMembershipActionState>;
 type EditorTranslations = Dictionary["app"]["structureManagement"]["academic"]["groupsEditor"];
 type AcademicGroup = AcademicGroupsEditorOverview["academic_groups"][number];
 type AcademicProgram = AcademicGroupsEditorOverview["academic_programs"][number];
@@ -214,11 +217,17 @@ export function AcademicGroupsEditor({
   overview,
   translations: t,
   action,
+  membershipOverview,
+  membershipTranslations,
+  membershipAction,
 }: {
   locale: Locale;
   overview: AcademicGroupsEditorOverview;
   translations: EditorTranslations;
   action: MutationAction;
+  membershipOverview?: StudentGroupMembershipEditorOverview | null;
+  membershipTranslations?: Dictionary["app"]["structureManagement"]["academic"]["membershipEditor"];
+  membershipAction?: MembershipMutationAction;
 }) {
   const university = overview.selected_university;
   const [creating, setCreating] = useState(false);
@@ -292,6 +301,18 @@ export function AcademicGroupsEditor({
                 translations={t}
                 group={group}
               />
+              {membershipOverview?.selected_university && membershipTranslations && membershipAction ? (
+                <GroupMembershipPanel
+                  locale={locale}
+                  targetUniversityId={university.id}
+                  group={{ id: group.id, code: group.code, name: group.name, status: group.status, academic_program_id: group.academic_program_id }}
+                  allGroups={membershipOverview.groups}
+                  eligibleStudents={membershipOverview.eligible_students}
+                  memberships={membershipOverview.memberships}
+                  translations={membershipTranslations}
+                  action={membershipAction}
+                />
+              ) : null}
             </details>
           );
         })}
