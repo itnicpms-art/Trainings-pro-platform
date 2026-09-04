@@ -17,6 +17,7 @@
 | 004 | `tasks/TASK-004-structure-management-ui-foundation.md` | Vizualizare read-only a structurii academice și organizaționale prin RPC-uri strict scoped |
 | 004.1 | `tasks/TASK-004-1-academic-units-editable-management.md` | Editare auditată și strict scoped pentru facultăți și departamente |
 | 004.2 | `tasks/TASK-004-2-organizations-universities-editable-management.md` | Editare auditată pentru organizații și universități, exclusiv Platform Admin |
+| 004.3 | `tasks/TASK-004-3-academic-programs-editable-management.md` | Editare auditată și strict scoped pentru programe academice |
 | 004.5 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
@@ -109,6 +110,13 @@ TASK 004.1 permite numai crearea și actualizarea facultăților/departamentelor
 - `docs/roadmap/TASK_004_2_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
 
 TASK 004.2 permite numai Platform Admin să creeze și să actualizeze organizații și universități (nume, slug, tip, status, website, descriere, logo) prin RPC-uri auditate. Facultățile și departamentele universităților rămân administrate exclusiv din `/admin/academic-structure` (TASK 004.1); paginile nu sunt îmbinate. Nu există ștergere definitivă.
+
+## Documentație TASK 004.3
+
+- `docs/tasks/TASK-004-3-academic-programs-editable-management.md` — domeniul editabil, ierarhia, autorizarea, valorile de schemă folosite, RPC-urile și auditul;
+- `docs/roadmap/TASK_004_3_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
+
+TASK 004.3 permite numai crearea și actualizarea programelor academice prin RPC-uri auditate, reutilizând `resolve_academic_units_editor_mode` din migrarea 007. University Admin este limitat la propria universitate; Platform Admin lucrează global din `/admin/academic-structure`. Un program trebuie să aparțină unei facultăți sau unui departament din aceeași universitate. Anii academici, semestrele și grupele rămân read-only. Nu există ștergere definitivă, iar `/admin/organizations` nu este afectată.
 
 ## Reguli de execuție
 

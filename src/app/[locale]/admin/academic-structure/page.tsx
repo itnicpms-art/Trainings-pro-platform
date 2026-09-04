@@ -2,13 +2,15 @@ import { Landmark } from "lucide-react";
 import { z } from "zod";
 
 import { AdminEmptyState, AdminSection } from "@/components/admin/admin-console-ui";
+import { AcademicProgramsEditor } from "@/components/manage/academic-programs-editor";
 import { AcademicUnitsEditor } from "@/components/manage/academic-units-editor";
 import { PageHeading } from "@/components/page-heading";
 import { buttonVariants } from "@/components/ui/button";
 import { getDictionary, resolveLocale, type LocaleParams } from "@/i18n/get-dictionary";
+import { getAdminAcademicProgramsEditor } from "@/lib/admin/get-admin-academic-programs-editor";
 import { getAdminAcademicUnitsEditor } from "@/lib/admin/get-admin-academic-units-editor";
 import { cn } from "@/lib/utils";
-import { mutateAdminAcademicUnitAction } from "./actions";
+import { mutateAdminAcademicProgramAction, mutateAdminAcademicUnitAction } from "./actions";
 
 type SearchParams = Promise<{ university?: string | string[] }>;
 
@@ -17,9 +19,10 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
   const query = await searchParams;
   const requestedUniversity = Array.isArray(query.university) ? query.university[0] : query.university;
   const targetUniversityId = z.uuid().safeParse(requestedUniversity).success ? requestedUniversity! : null;
-  const [dictionary, overview] = await Promise.all([
+  const [dictionary, overview, programsOverview] = await Promise.all([
     getDictionary(locale),
     getAdminAcademicUnitsEditor(targetUniversityId),
+    getAdminAcademicProgramsEditor(targetUniversityId),
   ]);
   const t = dictionary.admin.academicStructure;
 
@@ -44,7 +47,18 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
             </form>
           </AdminSection>
           {overview.selected_university ? (
-            <AcademicUnitsEditor locale={locale} overview={overview} translations={dictionary.app.structureManagement.academic.editor} action={mutateAdminAcademicUnitAction} />
+            <>
+              <AcademicUnitsEditor locale={locale} overview={overview} translations={dictionary.app.structureManagement.academic.editor} action={mutateAdminAcademicUnitAction} />
+              {programsOverview?.selected_university ? (
+                <AcademicProgramsEditor
+                  locale={locale}
+                  overview={programsOverview}
+                  levelLabels={dictionary.app.structureManagement.common.programLevels}
+                  translations={dictionary.app.structureManagement.academic.programsEditor}
+                  action={mutateAdminAcademicProgramAction}
+                />
+              ) : null}
+            </>
           ) : (
             <AdminEmptyState icon={Landmark} title={t.emptyTitle} description={t.emptyDescription} label={t.selectionRequired} />
           )}
