@@ -129,7 +129,9 @@ function MembershipRow({
               </select>
               <button type="submit" disabled={movePending || !targetGroupId} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}><ArrowRightLeft className="size-3.5" />{movePending ? t.moving : t.move}</button>
             </form>
-          ) : null}
+          ) : (
+            <p className="text-xs text-slate-500">{t.noMoveTargets}</p>
+          )}
           <form action={endFormAction} className="contents">
             <input type="hidden" name="intent" value="end" />
             <input type="hidden" name="locale" value={locale} />

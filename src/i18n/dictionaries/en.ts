@@ -526,6 +526,7 @@ const en: Dictionary = {
           primaryBadge: "Primary",
           move: "Move",
           movePlaceholder: "Select the new group",
+          noMoveTargets: "There is no compatible group (in the same program) to move to.",
           moving: "Moving…",
           end: "End membership",
           ending: "Ending…",

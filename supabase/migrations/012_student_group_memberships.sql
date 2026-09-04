@@ -404,9 +404,15 @@ begin
     raise exception 'Student already has an active membership in this group' using errcode = '23505';
   end if;
 
+  -- greatest(...) protects against a future-dated started_at (e.g. a
+  -- membership scheduled to start next term): ending it today must never
+  -- produce ended_at < started_at, which academic_profile_contexts_date_
+  -- order_check (migration 004, unmodified) would reject. NULL start dates
+  -- are ignored by greatest(), so this still resolves to current_date in
+  -- the common case.
   update public.academic_profile_contexts context
   set status = 'inactive',
-      ended_at = current_date,
+      ended_at = greatest(current_date, existing_membership.started_at),
       is_primary = false
   where context.id = existing_membership.id
   returning context.* into ended_row;
@@ -462,9 +468,15 @@ begin
 
   actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, existing_membership.organization_id);
 
+  -- greatest(...) protects against a future-dated started_at (e.g. a
+  -- membership scheduled to start next term): ending it today must never
+  -- produce ended_at < started_at, which academic_profile_contexts_date_
+  -- order_check (migration 004, unmodified) would reject. NULL start dates
+  -- are ignored by greatest(), so this still resolves to current_date in
+  -- the common case.
   update public.academic_profile_contexts context
   set status = 'inactive',
-      ended_at = current_date,
+      ended_at = greatest(current_date, existing_membership.started_at),
       is_primary = false
   where context.id = existing_membership.id
     and context.status = 'active'

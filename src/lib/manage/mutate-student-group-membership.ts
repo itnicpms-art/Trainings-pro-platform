@@ -69,6 +69,13 @@ function mapMembershipError(error: { code?: string; message?: string }): NonNull
     if (PRIMARY_CONFLICT_MESSAGES.has(message)) return "primaryConflict";
     return "invalid";
   }
+  // Defensive safety net: academic_profile_contexts_date_order_check
+  // (migration 004) could still fire for a scenario this RPC layer does not
+  // yet anticipate. The RPC itself now avoids the known future-started_at
+  // case (see migration 012's greatest(current_date, started_at) fix), but
+  // a raw check-constraint violation must never surface as a Postgres error
+  // to the user regardless.
+  if (error.code === "23514") return "invalid";
   return "unavailable";
 }
 

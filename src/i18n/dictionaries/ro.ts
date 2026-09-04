@@ -524,6 +524,7 @@ const ro = {
           primaryBadge: "Principal",
           move: "Mută",
           movePlaceholder: "Selectează grupa nouă",
+          noMoveTargets: "Nu există o grupă compatibilă (din același program) pentru mutare.",
           moving: "Se mută…",
           end: "Încheie apartenența",
           ending: "Se încheie…",
