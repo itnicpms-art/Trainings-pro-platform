@@ -3,14 +3,22 @@ import { z } from "zod";
 
 import { AdminEmptyState, AdminSection } from "@/components/admin/admin-console-ui";
 import { AcademicProgramsEditor } from "@/components/manage/academic-programs-editor";
+import { AcademicTermsEditor } from "@/components/manage/academic-terms-editor";
 import { AcademicUnitsEditor } from "@/components/manage/academic-units-editor";
+import { AcademicYearsEditor } from "@/components/manage/academic-years-editor";
 import { PageHeading } from "@/components/page-heading";
 import { buttonVariants } from "@/components/ui/button";
 import { getDictionary, resolveLocale, type LocaleParams } from "@/i18n/get-dictionary";
+import { getAdminAcademicCalendarEditor } from "@/lib/admin/get-admin-academic-calendar-editor";
 import { getAdminAcademicProgramsEditor } from "@/lib/admin/get-admin-academic-programs-editor";
 import { getAdminAcademicUnitsEditor } from "@/lib/admin/get-admin-academic-units-editor";
 import { cn } from "@/lib/utils";
-import { mutateAdminAcademicProgramAction, mutateAdminAcademicUnitAction } from "./actions";
+import {
+  mutateAdminAcademicProgramAction,
+  mutateAdminAcademicTermAction,
+  mutateAdminAcademicUnitAction,
+  mutateAdminAcademicYearAction,
+} from "./actions";
 
 type SearchParams = Promise<{ university?: string | string[] }>;
 
@@ -19,10 +27,11 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
   const query = await searchParams;
   const requestedUniversity = Array.isArray(query.university) ? query.university[0] : query.university;
   const targetUniversityId = z.uuid().safeParse(requestedUniversity).success ? requestedUniversity! : null;
-  const [dictionary, overview, programsOverview] = await Promise.all([
+  const [dictionary, overview, programsOverview, calendarOverview] = await Promise.all([
     getDictionary(locale),
     getAdminAcademicUnitsEditor(targetUniversityId),
     getAdminAcademicProgramsEditor(targetUniversityId),
+    getAdminAcademicCalendarEditor(targetUniversityId),
   ]);
   const t = dictionary.admin.academicStructure;
 
@@ -57,6 +66,23 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
                   translations={dictionary.app.structureManagement.academic.programsEditor}
                   action={mutateAdminAcademicProgramAction}
                 />
+              ) : null}
+              {calendarOverview?.selected_university ? (
+                <>
+                  <AcademicYearsEditor
+                    locale={locale}
+                    overview={calendarOverview}
+                    translations={dictionary.app.structureManagement.academic.yearsEditor}
+                    action={mutateAdminAcademicYearAction}
+                  />
+                  <AcademicTermsEditor
+                    locale={locale}
+                    overview={calendarOverview}
+                    typeLabels={dictionary.app.structureManagement.common.termTypes}
+                    translations={dictionary.app.structureManagement.academic.termsEditor}
+                    action={mutateAdminAcademicTermAction}
+                  />
+                </>
               ) : null}
             </>
           ) : (

@@ -18,6 +18,7 @@
 | 004.1 | `tasks/TASK-004-1-academic-units-editable-management.md` | Editare auditată și strict scoped pentru facultăți și departamente |
 | 004.2 | `tasks/TASK-004-2-organizations-universities-editable-management.md` | Editare auditată pentru organizații și universități, exclusiv Platform Admin |
 | 004.3 | `tasks/TASK-004-3-academic-programs-editable-management.md` | Editare auditată și strict scoped pentru programe academice |
+| 004.4 | `tasks/TASK-004-4-academic-years-semesters-editable-management.md` | Editare auditată și strict scoped pentru ani academici și semestre |
 | 004.5 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
@@ -117,6 +118,13 @@ TASK 004.2 permite numai Platform Admin să creeze și să actualizeze organiza�
 - `docs/roadmap/TASK_004_3_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
 
 TASK 004.3 permite numai crearea și actualizarea programelor academice prin RPC-uri auditate, reutilizând `resolve_academic_units_editor_mode` din migrarea 007. University Admin este limitat la propria universitate; Platform Admin lucrează global din `/admin/academic-structure`. Un program trebuie să aparțină unei facultăți sau unui departament din aceeași universitate. Anii academici, semestrele și grupele rămân read-only. Nu există ștergere definitivă, iar `/admin/organizations` nu este afectată.
+
+## Documentație TASK 004.4
+
+- `docs/tasks/TASK-004-4-academic-years-semesters-editable-management.md` — schema reală folosită, regulile de validare a datelor, decizia privind suprapunerea semestrelor, ierarhia, autorizarea, RPC-urile și auditul;
+- `docs/roadmap/TASK_004_4_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
+
+TASK 004.4 permite numai crearea și actualizarea anilor academici și a semestrelor (tabela reală `academic_terms`, cu `term_type`) prin RPC-uri auditate, reutilizând `resolve_academic_units_editor_mode` din migrarea 007. University Admin este limitat la propria universitate; Platform Admin lucrează global din `/admin/academic-structure`. Un semestru trebuie să aparțină unui an academic din aceeași universitate și să rămână în intervalul anului. Grupele rămân read-only până la TASK 004.5. Nu există ștergere definitivă, iar `/admin/organizations` nu este afectată.
 
 ## Reguli de execuție
 

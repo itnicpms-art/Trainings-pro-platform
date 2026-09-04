@@ -94,6 +94,39 @@ export type AcademicProgramsEditorOverview = {
   }>;
 };
 
+export type AcademicCalendarEditorOverview = {
+  actor_profile_id: string;
+  actor_mode: "university_admin" | "platform_admin";
+  selected_university: { id: string; name: string; status: EntityStatus } | null;
+  universities: Array<{ id: string; name: string; status: EntityStatus }>;
+  academic_years: Array<{
+    id: string;
+    organization_id: string;
+    code: string;
+    name: string;
+    start_date: string;
+    end_date: string;
+    is_current: boolean;
+    status: EditableAcademicUnitStatus;
+    created_at: string;
+    updated_at: string;
+  }>;
+  academic_terms: Array<{
+    id: string;
+    organization_id: string;
+    academic_year_id: string;
+    code: string;
+    name: string;
+    term_type: AcademicTermType;
+    term_number: number | null;
+    start_date: string;
+    end_date: string;
+    status: EditableAcademicUnitStatus;
+    created_at: string;
+    updated_at: string;
+  }>;
+};
+
 export type PlatformAdminOrganizationsEditorOverview = {
   actor_profile_id: string;
   organizations: Array<{
@@ -164,6 +197,12 @@ export type Database = {
       academic_program_audit_events: {
         Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "academic_program"; resource_id: string | null; organization_id: string; before_snapshot: Json | null; after_snapshot: Json | null };
         Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type?: "academic_program"; resource_id?: string | null; organization_id: string; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      academic_calendar_audit_events: {
+        Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "academic_year" | "academic_term"; resource_id: string | null; organization_id: string; before_snapshot: Json | null; after_snapshot: Json | null };
+        Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "academic_year" | "academic_term"; resource_id?: string | null; organization_id: string; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
         Update: never;
         Relationships: [];
       };
@@ -370,6 +409,62 @@ export type Database = {
           status: EditableAcademicUnitStatus;
         };
         Returns: AcademicProgramsEditorOverview["programs"][number];
+      };
+      get_academic_calendar_editor_overview: {
+        Args: { requested_profile_id: string; target_university_id?: string | null };
+        Returns: AcademicCalendarEditorOverview;
+      };
+      create_academic_year: {
+        Args: {
+          requested_profile_id: string;
+          target_university_id: string;
+          code: string;
+          name: string;
+          start_date: string;
+          end_date: string;
+          status?: EditableAcademicUnitStatus;
+        };
+        Returns: AcademicCalendarEditorOverview["academic_years"][number];
+      };
+      update_academic_year: {
+        Args: {
+          requested_profile_id: string;
+          year_id: string;
+          code: string;
+          name: string;
+          start_date: string;
+          end_date: string;
+          status: EditableAcademicUnitStatus;
+        };
+        Returns: AcademicCalendarEditorOverview["academic_years"][number];
+      };
+      create_academic_term: {
+        Args: {
+          requested_profile_id: string;
+          target_university_id: string;
+          target_academic_year_id: string;
+          code: string;
+          name: string;
+          term_type: AcademicTermType;
+          start_date: string;
+          end_date: string;
+          status?: EditableAcademicUnitStatus;
+        };
+        Returns: AcademicCalendarEditorOverview["academic_terms"][number];
+      };
+      update_academic_term: {
+        Args: {
+          requested_profile_id: string;
+          term_id: string;
+          target_academic_year_id: string;
+          code: string;
+          name: string;
+          term_type: AcademicTermType;
+          start_date: string;
+          end_date: string;
+          status: EditableAcademicUnitStatus;
+        };
+        Returns: AcademicCalendarEditorOverview["academic_terms"][number];
       };
       get_platform_admin_organizations_editor: {
         Args: { requested_profile_id: string };
