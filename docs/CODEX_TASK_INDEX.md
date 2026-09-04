@@ -16,6 +16,7 @@
 | 003.3 | `tasks/TASK-003-3-home-workspace-cleanup.md` | Separă contextul real de modulele de lucru și desparte quiz-urile, testele și evaluările pe rol |
 | 004 | `tasks/TASK-004-structure-management-ui-foundation.md` | Vizualizare read-only a structurii academice și organizaționale prin RPC-uri strict scoped |
 | 004.1 | `tasks/TASK-004-1-academic-units-editable-management.md` | Editare auditată și strict scoped pentru facultăți și departamente |
+| 004.2 | `tasks/TASK-004-2-organizations-universities-editable-management.md` | Editare auditată pentru organizații și universități, exclusiv Platform Admin |
 | 004.5 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
@@ -101,6 +102,13 @@ TASK 004 expune numai structura reală permisă profilului activ prin RPC-uri `S
 - `docs/roadmap/TASK_004_1_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
 
 TASK 004.1 permite numai crearea și actualizarea facultăților/departamentelor prin RPC-uri auditate. University Admin este limitat la propria universitate, Platform Admin lucrează exclusiv din `/admin`, iar programele, anii, semestrele și grupele rămân read-only.
+
+## Documentație TASK 004.2
+
+- `docs/tasks/TASK-004-2-organizations-universities-editable-management.md` — domeniul editabil, separarea de structura academică, regulile de slug, autorizarea, RPC-urile și auditul;
+- `docs/roadmap/TASK_004_2_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
+
+TASK 004.2 permite numai Platform Admin să creeze și să actualizeze organizații și universități (nume, slug, tip, status, website, descriere, logo) prin RPC-uri auditate. Facultățile și departamentele universităților rămân administrate exclusiv din `/admin/academic-structure` (TASK 004.1); paginile nu sunt îmbinate. Nu există ștergere definitivă.
 
 ## Reguli de execuție
 

@@ -66,6 +66,22 @@ export type AcademicUnitsEditorOverview = {
   }>;
 };
 
+export type PlatformAdminOrganizationsEditorOverview = {
+  actor_profile_id: string;
+  organizations: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    type: OrganizationType;
+    description: string | null;
+    logo_url: string | null;
+    website: string | null;
+    status: EntityStatus;
+    created_at: string;
+    updated_at: string;
+  }>;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -114,6 +130,12 @@ export type Database = {
       academic_structure_audit_events: {
         Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "organization_unit"; resource_id: string | null; organization_id: string; before_snapshot: Json | null; after_snapshot: Json | null };
         Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type?: "organization_unit"; resource_id?: string | null; organization_id: string; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      platform_admin_organization_audit_events: {
+        Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "organization"; resource_id: string; before_snapshot: Json | null; after_snapshot: Json | null };
+        Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role?: "platform_admin"; action: "create" | "update" | "status_change"; resource_type?: "organization"; resource_id: string; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
         Update: never;
         Relationships: [];
       };
@@ -284,6 +306,37 @@ export type Database = {
           website: string | null;
           created_at: string;
         }[];
+      };
+      get_platform_admin_organizations_editor: {
+        Args: { requested_profile_id: string };
+        Returns: PlatformAdminOrganizationsEditorOverview;
+      };
+      create_platform_admin_organization: {
+        Args: {
+          requested_profile_id: string;
+          name: string;
+          slug: string | null;
+          org_type: OrganizationType;
+          description: string | null;
+          logo_url: string | null;
+          website: string | null;
+          status?: EntityStatus;
+        };
+        Returns: PlatformAdminOrganizationsEditorOverview["organizations"][number];
+      };
+      update_platform_admin_organization: {
+        Args: {
+          requested_profile_id: string;
+          organization_id: string;
+          name: string;
+          slug: string | null;
+          org_type: OrganizationType;
+          description: string | null;
+          logo_url: string | null;
+          website: string | null;
+          status: EntityStatus;
+        };
+        Returns: PlatformAdminOrganizationsEditorOverview["organizations"][number];
       };
       list_platform_admin_profiles: {
         Args: { requested_profile_id: string };
