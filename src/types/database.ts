@@ -66,6 +66,34 @@ export type AcademicUnitsEditorOverview = {
   }>;
 };
 
+export type AcademicProgramsEditorOverview = {
+  actor_profile_id: string;
+  actor_mode: "university_admin" | "platform_admin";
+  selected_university: { id: string; name: string; status: EntityStatus } | null;
+  universities: Array<{ id: string; name: string; status: EntityStatus }>;
+  units: Array<{
+    id: string;
+    parent_unit_id: string | null;
+    unit_type: EditableAcademicUnitType;
+    code: string;
+    name: string;
+    status: EditableAcademicUnitStatus;
+  }>;
+  programs: Array<{
+    id: string;
+    organization_id: string;
+    organization_unit_id: string | null;
+    code: string;
+    name: string;
+    description: string | null;
+    program_level: AcademicProgramLevel;
+    standard_duration_years: number | null;
+    status: EditableAcademicUnitStatus;
+    created_at: string;
+    updated_at: string;
+  }>;
+};
+
 export type PlatformAdminOrganizationsEditorOverview = {
   actor_profile_id: string;
   organizations: Array<{
@@ -130,6 +158,12 @@ export type Database = {
       academic_structure_audit_events: {
         Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "organization_unit"; resource_id: string | null; organization_id: string; before_snapshot: Json | null; after_snapshot: Json | null };
         Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type?: "organization_unit"; resource_id?: string | null; organization_id: string; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      academic_program_audit_events: {
+        Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "academic_program"; resource_id: string | null; organization_id: string; before_snapshot: Json | null; after_snapshot: Json | null };
+        Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type?: "academic_program"; resource_id?: string | null; organization_id: string; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
         Update: never;
         Relationships: [];
       };
@@ -306,6 +340,36 @@ export type Database = {
           website: string | null;
           created_at: string;
         }[];
+      };
+      get_academic_programs_editor_overview: {
+        Args: { requested_profile_id: string; target_university_id?: string | null };
+        Returns: AcademicProgramsEditorOverview;
+      };
+      create_academic_program: {
+        Args: {
+          requested_profile_id: string;
+          target_university_id: string;
+          target_organization_unit_id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          program_level: AcademicProgramLevel;
+          status?: EditableAcademicUnitStatus;
+        };
+        Returns: AcademicProgramsEditorOverview["programs"][number];
+      };
+      update_academic_program: {
+        Args: {
+          requested_profile_id: string;
+          program_id: string;
+          target_organization_unit_id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          program_level: AcademicProgramLevel;
+          status: EditableAcademicUnitStatus;
+        };
+        Returns: AcademicProgramsEditorOverview["programs"][number];
       };
       get_platform_admin_organizations_editor: {
         Args: { requested_profile_id: string };
