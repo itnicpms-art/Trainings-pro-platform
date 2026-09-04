@@ -2,6 +2,7 @@ import { Landmark } from "lucide-react";
 import { z } from "zod";
 
 import { AdminEmptyState, AdminSection } from "@/components/admin/admin-console-ui";
+import { AcademicGroupsEditor } from "@/components/manage/academic-groups-editor";
 import { AcademicProgramsEditor } from "@/components/manage/academic-programs-editor";
 import { AcademicTermsEditor } from "@/components/manage/academic-terms-editor";
 import { AcademicUnitsEditor } from "@/components/manage/academic-units-editor";
@@ -10,10 +11,12 @@ import { PageHeading } from "@/components/page-heading";
 import { buttonVariants } from "@/components/ui/button";
 import { getDictionary, resolveLocale, type LocaleParams } from "@/i18n/get-dictionary";
 import { getAdminAcademicCalendarEditor } from "@/lib/admin/get-admin-academic-calendar-editor";
+import { getAdminAcademicGroupsEditor } from "@/lib/admin/get-admin-academic-groups-editor";
 import { getAdminAcademicProgramsEditor } from "@/lib/admin/get-admin-academic-programs-editor";
 import { getAdminAcademicUnitsEditor } from "@/lib/admin/get-admin-academic-units-editor";
 import { cn } from "@/lib/utils";
 import {
+  mutateAdminAcademicGroupAction,
   mutateAdminAcademicProgramAction,
   mutateAdminAcademicTermAction,
   mutateAdminAcademicUnitAction,
@@ -27,11 +30,12 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
   const query = await searchParams;
   const requestedUniversity = Array.isArray(query.university) ? query.university[0] : query.university;
   const targetUniversityId = z.uuid().safeParse(requestedUniversity).success ? requestedUniversity! : null;
-  const [dictionary, overview, programsOverview, calendarOverview] = await Promise.all([
+  const [dictionary, overview, programsOverview, calendarOverview, groupsOverview] = await Promise.all([
     getDictionary(locale),
     getAdminAcademicUnitsEditor(targetUniversityId),
     getAdminAcademicProgramsEditor(targetUniversityId),
     getAdminAcademicCalendarEditor(targetUniversityId),
+    getAdminAcademicGroupsEditor(targetUniversityId),
   ]);
   const t = dictionary.admin.academicStructure;
 
@@ -83,6 +87,14 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
                     action={mutateAdminAcademicTermAction}
                   />
                 </>
+              ) : null}
+              {groupsOverview?.selected_university ? (
+                <AcademicGroupsEditor
+                  locale={locale}
+                  overview={groupsOverview}
+                  translations={dictionary.app.structureManagement.academic.groupsEditor}
+                  action={mutateAdminAcademicGroupAction}
+                />
               ) : null}
             </>
           ) : (

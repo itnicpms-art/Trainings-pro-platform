@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { AcademicGroupsEditor } from "@/components/manage/academic-groups-editor";
 import { AcademicProgramsEditor } from "@/components/manage/academic-programs-editor";
 import { AcademicStructureView } from "@/components/manage/academic-structure-view";
 import { AcademicTermsEditor } from "@/components/manage/academic-terms-editor";
@@ -9,11 +10,13 @@ import { StructureOverviewShell, StructureRestricted, StructureUnavailable } fro
 import { getDictionary, resolveLocale, type LocaleParams } from "@/i18n/get-dictionary";
 import { getDashboardContext } from "@/lib/dashboard/get-dashboard-context";
 import { getAcademicCalendarEditor } from "@/lib/manage/get-academic-calendar-editor";
+import { getAcademicGroupsEditor } from "@/lib/manage/get-academic-groups-editor";
 import { getAcademicProgramsEditor } from "@/lib/manage/get-academic-programs-editor";
 import { getAcademicStructureManagement } from "@/lib/manage/get-academic-structure-management";
 import { getAcademicUnitsEditor } from "@/lib/manage/get-academic-units-editor";
 import { canAccessAcademicStructureManagement } from "@/lib/manage/structure-management-access";
 import {
+  mutateUniversityAcademicGroupAction,
   mutateUniversityAcademicProgramAction,
   mutateUniversityAcademicTermAction,
   mutateUniversityAcademicUnitAction,
@@ -33,11 +36,12 @@ export default async function AcademicStructureManagementPage({ params }: { para
   if (!allowed) return <StructureRestricted locale={locale} translations={t.common} />;
 
   const isUniversityAdmin = context.roleCodes.has("university_admin");
-  const [overview, editorOverview, programsEditorOverview, calendarEditorOverview] = await Promise.all([
+  const [overview, editorOverview, programsEditorOverview, calendarEditorOverview, groupsEditorOverview] = await Promise.all([
     getAcademicStructureManagement(context.activeProfile.id),
     isUniversityAdmin ? getAcademicUnitsEditor(context.activeProfile.id) : Promise.resolve(null),
     isUniversityAdmin ? getAcademicProgramsEditor(context.activeProfile.id) : Promise.resolve(null),
     isUniversityAdmin ? getAcademicCalendarEditor(context.activeProfile.id) : Promise.resolve(null),
+    isUniversityAdmin ? getAcademicGroupsEditor(context.activeProfile.id) : Promise.resolve(null),
   ]);
   if (!overview && editorOverview?.selected_university) {
     return (
@@ -65,6 +69,14 @@ export default async function AcademicStructureManagementPage({ params }: { para
               />
             </>
           ) : null}
+          {groupsEditorOverview?.selected_university ? (
+            <AcademicGroupsEditor
+              locale={locale}
+              overview={groupsEditorOverview}
+              translations={t.academic.groupsEditor}
+              action={mutateUniversityAcademicGroupAction}
+            />
+          ) : null}
         </div>
       </StructureOverviewShell>
     );
@@ -82,6 +94,8 @@ export default async function AcademicStructureManagementPage({ params }: { para
       calendarEditorOverview={calendarEditorOverview}
       yearAction={isUniversityAdmin ? mutateUniversityAcademicYearAction : undefined}
       termAction={isUniversityAdmin ? mutateUniversityAcademicTermAction : undefined}
+      groupsEditorOverview={groupsEditorOverview}
+      groupAction={isUniversityAdmin ? mutateUniversityAcademicGroupAction : undefined}
     />
   );
 }

@@ -19,7 +19,10 @@
 | 004.2 | `tasks/TASK-004-2-organizations-universities-editable-management.md` | Editare auditată pentru organizații și universități, exclusiv Platform Admin |
 | 004.3 | `tasks/TASK-004-3-academic-programs-editable-management.md` | Editare auditată și strict scoped pentru programe academice |
 | 004.4 | `tasks/TASK-004-4-academic-years-semesters-editable-management.md` | Editare auditată și strict scoped pentru ani academici și semestre |
-| 004.5 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
+| 004.5 | `tasks/TASK-004-5-academic-groups-editable-management.md` | Editare auditată și strict scoped pentru grupe academice |
+| 004.6 | *(neimplementat)* | Alocare studenți în grupe academice |
+| 004.7 | *(neimplementat)* | Cereri de înscriere în grupă și flux de aprobare |
+| 004.8 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
 | 006 | `TASK-006-assignment-project-assessments-survey.md` | Assignment, Project, Quiz, Test, Exam, Survey, Grades |
 | 007 | `TASK-007-sessions-webinars-consultations.md` | Course sessions, bookings, webinars, consultații live/async |
@@ -125,6 +128,15 @@ TASK 004.3 permite numai crearea și actualizarea programelor academice prin RPC
 - `docs/roadmap/TASK_004_4_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
 
 TASK 004.4 permite numai crearea și actualizarea anilor academici și a semestrelor (tabela reală `academic_terms`, cu `term_type`) prin RPC-uri auditate, reutilizând `resolve_academic_units_editor_mode` din migrarea 007. University Admin este limitat la propria universitate; Platform Admin lucrează global din `/admin/academic-structure`. Un semestru trebuie să aparțină unui an academic din aceeași universitate și să rămână în intervalul anului. Grupele rămân read-only până la TASK 004.5. Nu există ștergere definitivă, iar `/admin/organizations` nu este afectată.
+
+## Documentație TASK 004.5
+
+- `docs/tasks/TASK-004-5-academic-groups-editable-management.md` — schema reală folosită, relația de membership deja existentă (`academic_profile_contexts`), ierarhia, autorizarea, RPC-urile și auditul;
+- `docs/roadmap/TASK_004_5_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
+
+TASK 004.5 permite numai crearea și actualizarea grupelor academice (program obligatoriu, an și semestru opționale) prin RPC-uri auditate, reutilizând `resolve_academic_units_editor_mode` din migrarea 007. University Admin este limitat la propria universitate; Platform Admin lucrează global din `/admin/academic-structure`. Nu se creează, citește sau modifică nicio înregistrare de membership (`academic_profile_contexts`) și nu există niciun flux de cerere de înscriere. Nu există ștergere definitivă, iar `/admin/organizations` nu este afectată.
+
+TASK 004.6 (Alocare studenți în grupe academice) și TASK 004.7 (Cereri de înscriere în grupă și flux de aprobare) sunt task-uri viitoare planificate, dar neimplementate; TASK 004.5 nu adaugă niciun UI sau RPC pentru ele.
 
 ## Reguli de execuție
 
