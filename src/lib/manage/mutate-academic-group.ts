@@ -28,7 +28,9 @@ const academicGroupMutationSchema = z.discriminatedUnion("intent", [
 export type AcademicGroupActionState = {
   status: "idle" | "success" | "error";
   intent?: "create" | "update";
-  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable" | "archivedParent" | "inactiveParent" | "invalidTermYear";
+  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable" | "invalidTermYear"
+    | "archivedProgram" | "archivedYear" | "archivedTerm"
+    | "inactiveProgram" | "inactiveYear" | "inactiveTerm";
 };
 
 export const initialAcademicGroupActionState: AcademicGroupActionState = { status: "idle" };
@@ -42,24 +44,30 @@ function safeFormValue(formData: FormData, key: string) {
 // business-rule violation with errcode 22023, distinguished only by message
 // text. These strings are authored in that migration and are matched
 // verbatim here instead of widening the RPC's error surface with new
-// SQLSTATEs — see the TASK 004.4 fix this mirrors.
+// SQLSTATEs — see the TASK 004.4 fix this mirrors. The RPC already raises a
+// distinct message per parent entity (program/year/term), so the mapping
+// below stays just as specific — this is the safety-net path for a database
+// state that changed after the page loaded; the primary UX is the client-side
+// pre-submit check in AcademicGroupsEditor, which names the exact record.
 const TERM_YEAR_MESSAGES = new Set([
   "Academic term requires an academic year",
   "Academic term must belong to the selected academic year",
 ]);
-const ARCHIVED_PARENT_MESSAGES = new Set([
+const ARCHIVED_PROGRAM_MESSAGES = new Set([
   "Academic group cannot be created under an archived academic program",
-  "Academic group cannot be created for an archived academic year",
-  "Academic group cannot be created for an archived academic term",
   "Academic group cannot be moved under or reactivated within an archived academic program",
+]);
+const ARCHIVED_YEAR_MESSAGES = new Set([
+  "Academic group cannot be created for an archived academic year",
   "Academic group cannot be moved under or reactivated within an archived academic year",
+]);
+const ARCHIVED_TERM_MESSAGES = new Set([
+  "Academic group cannot be created for an archived academic term",
   "Academic group cannot be moved under or reactivated within an archived academic term",
 ]);
-const INACTIVE_PARENT_MESSAGES = new Set([
-  "Active academic group requires an active academic program",
-  "Active academic group requires an active academic year",
-  "Active academic group requires an active academic term",
-]);
+const INACTIVE_PROGRAM_MESSAGES = new Set(["Active academic group requires an active academic program"]);
+const INACTIVE_YEAR_MESSAGES = new Set(["Active academic group requires an active academic year"]);
+const INACTIVE_TERM_MESSAGES = new Set(["Active academic group requires an active academic term"]);
 
 function mapAcademicGroupError(error: { code?: string; message?: string }): NonNullable<AcademicGroupActionState["reason"]> {
   if (error.code === "23505") return "duplicate";
@@ -67,8 +75,12 @@ function mapAcademicGroupError(error: { code?: string; message?: string }): NonN
   if (error.code === "22023") {
     const message = error.message ?? "";
     if (TERM_YEAR_MESSAGES.has(message)) return "invalidTermYear";
-    if (ARCHIVED_PARENT_MESSAGES.has(message)) return "archivedParent";
-    if (INACTIVE_PARENT_MESSAGES.has(message)) return "inactiveParent";
+    if (ARCHIVED_PROGRAM_MESSAGES.has(message)) return "archivedProgram";
+    if (ARCHIVED_YEAR_MESSAGES.has(message)) return "archivedYear";
+    if (ARCHIVED_TERM_MESSAGES.has(message)) return "archivedTerm";
+    if (INACTIVE_PROGRAM_MESSAGES.has(message)) return "inactiveProgram";
+    if (INACTIVE_YEAR_MESSAGES.has(message)) return "inactiveYear";
+    if (INACTIVE_TERM_MESSAGES.has(message)) return "inactiveTerm";
     return "invalid";
   }
   return "unavailable";

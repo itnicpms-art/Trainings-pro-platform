@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { CheckCircle2, Pencil, Plus, ShieldCheck, UsersRound } from "lucide-react";
+import { useActionState, useState, type FormEvent } from "react";
+import { CheckCircle2, Pencil, Plus, ShieldCheck, TriangleAlert, UsersRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,6 +21,8 @@ type AcademicProgram = AcademicGroupsEditorOverview["academic_programs"][number]
 type AcademicYear = AcademicGroupsEditorOverview["academic_years"][number];
 type AcademicTerm = AcademicGroupsEditorOverview["academic_terms"][number];
 type GroupStatus = "active" | "inactive" | "archived";
+type ParentKind = "program" | "year" | "term";
+type ParentIssue = { kind: ParentKind; name: string; status: AcademicProgram["status"] };
 
 const initialState: AcademicGroupActionState = { status: "idle" };
 
@@ -35,6 +37,47 @@ function generateInternalCode(name: string) {
     .slice(0, 100);
 }
 
+// UX-only pre-check: names the exact program/year/term blocking activation so
+// the user does not have to inspect every section to find it. This never
+// replaces backend validation — create_academic_group/update_academic_group
+// (migration 011) independently re-check every one of these rules and remain
+// the only authority that can actually reject a save.
+function findBlockingParents({
+  status,
+  programId,
+  yearId,
+  termId,
+  allPrograms,
+  allYears,
+  allTerms,
+}: {
+  status: GroupStatus;
+  programId: string;
+  yearId: string;
+  termId: string;
+  allPrograms: AcademicProgram[];
+  allYears: AcademicYear[];
+  allTerms: AcademicTerm[];
+}): ParentIssue[] {
+  if (status !== "active") return [];
+  const issues: ParentIssue[] = [];
+
+  const program = allPrograms.find((item) => item.id === programId);
+  if (program && program.status !== "active") issues.push({ kind: "program", name: program.name, status: program.status });
+
+  const year = yearId ? allYears.find((item) => item.id === yearId) : undefined;
+  if (year && year.status !== "active") issues.push({ kind: "year", name: year.name, status: year.status });
+
+  const term = termId ? allTerms.find((item) => item.id === termId) : undefined;
+  if (term && term.status !== "active") issues.push({ kind: "term", name: term.name, status: term.status });
+
+  return issues;
+}
+
+function formatBlockedMessage(template: string, name: string, statusLabel: string) {
+  return template.replace("{name}", name).replace("{status}", statusLabel);
+}
+
 function AcademicGroupForm({
   action,
   locale,
@@ -42,6 +85,9 @@ function AcademicGroupForm({
   programs,
   years,
   terms,
+  allPrograms,
+  allYears,
+  allTerms,
   translations: t,
   group,
 }: {
@@ -51,6 +97,9 @@ function AcademicGroupForm({
   programs: AcademicProgram[];
   years: AcademicYear[];
   terms: AcademicTerm[];
+  allPrograms: AcademicProgram[];
+  allYears: AcademicYear[];
+  allTerms: AcademicTerm[];
   translations: EditorTranslations;
   group?: AcademicGroup;
 }) {
@@ -63,14 +112,23 @@ function AcademicGroupForm({
   const [codeEdited, setCodeEdited] = useState(Boolean(group));
   const [description, setDescription] = useState(group?.description ?? "");
   const [status, setStatus] = useState<GroupStatus>(group?.status ?? "active");
+  const [attemptedBlockedSubmit, setAttemptedBlockedSubmit] = useState(false);
 
   const termsForYear = yearId ? terms.filter((term) => term.academic_year_id === yearId) : [];
+  const blockingIssues = findBlockingParents({ status, programId, yearId, termId, allPrograms, allYears, allTerms });
   const message = state.status === "success"
     ? state.intent === "create" ? t.messages.created : t.messages.updated
     : state.status === "error" && state.reason ? t.messages[state.reason] : null;
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (blockingIssues.length > 0) {
+      event.preventDefault();
+      setAttemptedBlockedSubmit(true);
+    }
+  }
+
   return (
-    <form action={formAction} className="grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
+    <form action={formAction} onSubmit={handleSubmit} className="grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
       <input type="hidden" name="intent" value={group ? "update" : "create"} />
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="target_university_id" value={targetUniversityId} />
@@ -80,7 +138,7 @@ function AcademicGroupForm({
         <Label htmlFor={`${group?.id ?? "new"}-program`}>{t.fields.program}</Label>
         <select id={`${group?.id ?? "new"}-program`} name="academic_program_id" value={programId} onChange={(event) => setProgramId(event.target.value)} required className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
           <option value="" disabled>{t.programPlaceholder}</option>
-          {programs.map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}
+          {programs.map((program) => <option key={program.id} value={program.id}>{program.name} — {t.statuses[program.status]}</option>)}
         </select>
       </div>
       <div className="space-y-2">
@@ -90,14 +148,14 @@ function AcademicGroupForm({
           setTermId("");
         }} className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
           <option value="">{t.yearPlaceholder}</option>
-          {years.map((year) => <option key={year.id} value={year.id}>{year.name}</option>)}
+          {years.map((year) => <option key={year.id} value={year.id}>{year.name} — {t.statuses[year.status]}</option>)}
         </select>
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${group?.id ?? "new"}-term`}>{t.fields.term}</Label>
         <select id={`${group?.id ?? "new"}-term`} name="academic_term_id" value={termId} onChange={(event) => setTermId(event.target.value)} disabled={!yearId} className="h-8 w-full rounded-lg border border-input bg-white px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50">
           <option value="">{t.termPlaceholder}</option>
-          {termsForYear.map((term) => <option key={term.id} value={term.id}>{term.name}</option>)}
+          {termsForYear.map((term) => <option key={term.id} value={term.id}>{term.name} — {t.statuses[term.status]}</option>)}
         </select>
       </div>
       <div className="space-y-2">
@@ -128,6 +186,21 @@ function AcademicGroupForm({
         <Label htmlFor={`${group?.id ?? "new"}-description`}>{t.fields.description}</Label>
         <textarea id={`${group?.id ?? "new"}-description`} name="description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} rows={3} className="w-full rounded-lg border border-input bg-white px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
       </div>
+      {attemptedBlockedSubmit && blockingIssues.length > 0 ? (
+        <div role="alert" className="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs leading-5 text-rose-800">
+          <div className="flex items-start gap-2">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            <div>
+              <p className="font-semibold">{t.activationBlocked.title}</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                {blockingIssues.map((issue) => (
+                  <li key={issue.kind}>{formatBlockedMessage(t.activationBlocked[issue.kind], issue.name, t.statuses[issue.status])}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="flex items-end justify-end gap-3 sm:col-span-2">
         {message ? <p role="status" className={cn("text-xs", state.status === "success" ? "text-emerald-700" : "text-rose-700")}>{message}</p> : null}
         <button type="submit" disabled={pending} className={cn(buttonVariants(), "brand-gradient min-w-24")}>{pending ? t.saving : t.save}</button>
@@ -173,7 +246,19 @@ export function AcademicGroupsEditor({
             {/* Keyed on the row count so a successful create (which adds a row and
                 revalidates) remounts the form with blank fields, while a failed
                 create (no new row) leaves the user's entered values untouched. */}
-            <AcademicGroupForm key={overview.academic_groups.length} action={action} locale={locale} targetUniversityId={university.id} programs={eligiblePrograms} years={eligibleYears} terms={eligibleTerms} translations={t} />
+            <AcademicGroupForm
+              key={overview.academic_groups.length}
+              action={action}
+              locale={locale}
+              targetUniversityId={university.id}
+              programs={eligiblePrograms}
+              years={eligibleYears}
+              terms={eligibleTerms}
+              allPrograms={overview.academic_programs}
+              allYears={overview.academic_years}
+              allTerms={overview.academic_terms}
+              translations={t}
+            />
           </div> : null}
         </div>
       </CardHeader>
@@ -194,7 +279,19 @@ export function AcademicGroupsEditor({
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-blue-700"><Pencil className="size-3.5" />{t.edit}</span>
               </summary>
-              <AcademicGroupForm action={action} locale={locale} targetUniversityId={university.id} programs={eligiblePrograms} years={eligibleYears} terms={eligibleTerms} translations={t} group={group} />
+              <AcademicGroupForm
+                action={action}
+                locale={locale}
+                targetUniversityId={university.id}
+                programs={eligiblePrograms}
+                years={eligibleYears}
+                terms={eligibleTerms}
+                allPrograms={overview.academic_programs}
+                allYears={overview.academic_years}
+                allTerms={overview.academic_terms}
+                translations={t}
+                group={group}
+              />
             </details>
           );
         })}
