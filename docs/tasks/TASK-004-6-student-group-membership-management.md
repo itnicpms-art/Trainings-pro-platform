@@ -23,6 +23,19 @@ The only thing genuinely new is the *editing capability* (RPCs) and the *audit t
 
 The one-primary-per-profile rule enforced by `academic_profile_contexts_one_primary_per_profile_idx` is **global across the whole table, not scoped by `organization_id`** — the index key is `profile_id` alone. Every RPC that needs to find "the other primary row" for a student (in `add_student_to_group` and `set_primary_group_membership`) deliberately queries by `profile_id` alone, matching that real scope, rather than adding an organization filter that the database itself does not apply.
 
+## A student may have zero active group memberships
+
+This is an explicit business rule, not an incidental side effect: ending a group membership never requires — and structurally cannot require, since `end_student_group_membership` has no group parameter at all — assigning the student to a replacement group. Ending a membership:
+
+- marks the existing row `status = 'inactive'` with a safe `ended_at` (see below) and `is_primary = false`;
+- never creates a second row;
+- never touches `organization_id`/`academic_program_id`/`academic_year_id`/`academic_term_id` on that row, so the ended membership's own history (which program/year/term/group it was) stays fully intact and visible in the group's member panel, not just in the audit log;
+- leaves the student with zero active `academic_profile_contexts` rows if that was their only one — this is a valid, supported state, not an error.
+
+A student with no active group membership remains fully eligible to be added to a compatible group later: `eligible_students` in `get_student_group_membership_editor_overview` queries `public.profiles` directly and never joins `academic_profile_contexts`, so group state never affects eligibility. `add_student_to_group`'s primary-conflict check only rejects a new primary assignment when an existing active primary row *still has a group* (`existing_primary_group_id is not null`); once a membership has been ended, that guard no longer applies, so the student can be freely added to any compatible group afterward.
+
+The primary-membership rule is unchanged by this: at most one `is_primary = true and status = 'active'` row per student (enforced by the pre-existing partial unique index), but **zero** such rows is explicitly valid — the index caps the maximum, it does not require a minimum.
+
 ## Access model
 
 **University Admin** (`/{locale}/app/manage/academic`) and **Platform Admin** (`/{locale}/admin/academic-structure`) can add, move, and end memberships and change the primary flag — scoped to their own university (University Admin) or the selected university (Platform Admin), reusing `resolve_academic_units_editor_mode(...)` from migration 007 exactly like every prior TASK 004.x write RPC. Neither can hard-delete a historical record, and neither can act outside their scoped university.

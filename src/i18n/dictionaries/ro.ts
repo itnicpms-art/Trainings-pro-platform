@@ -538,7 +538,7 @@ const ro = {
           messages: {
             added: "Studentul a fost adăugat la grupă.",
             moved: "Studentul a fost mutat la noua grupă.",
-            ended: "Apartenența a fost încheiată.",
+            ended: "Apartenența la grupă a fost încheiată. Studentul nu este momentan alocat unei grupe.",
             primaryChanged: "Membrul principal a fost actualizat.",
             invalid: "Verifică studentul și grupa selectată.",
             duplicate: "Studentul are deja o apartenență activă la această grupă.",

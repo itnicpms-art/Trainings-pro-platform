@@ -540,7 +540,7 @@ const en: Dictionary = {
           messages: {
             added: "The student was added to the group.",
             moved: "The student was moved to the new group.",
-            ended: "The membership was ended.",
+            ended: "The group membership was ended. The student is not currently assigned to a group.",
             primaryChanged: "The primary member was updated.",
             invalid: "Check the selected student and group.",
             duplicate: "The student already has an active membership in this group.",

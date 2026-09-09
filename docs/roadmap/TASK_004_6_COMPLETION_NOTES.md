@@ -30,7 +30,19 @@ Only the write RPCs and the audit trail were new; the data model required nothin
 
 ## Exact primary-membership rule
 
-At most one row with `is_primary = true and status = 'active'` per `profile_id`, enforced by the pre-existing partial unique index — no new constraint added. `add_student_to_group` rejects adding a primary membership when the student already has an active primary in a *different group*; `set_primary_group_membership` demotes any other active-primary row for the same student (found by `profile_id` alone, matching the index's real global scope) before promoting the requested one, inside the same transaction.
+At most one row with `is_primary = true and status = 'active'` per `profile_id`, enforced by the pre-existing partial unique index — no new constraint added. `add_student_to_group` rejects adding a primary membership when the student already has an active primary in a *different group*; `set_primary_group_membership` demotes any other active-primary row for the same student (found by `profile_id` alone, matching the index's real global scope) before promoting the requested one, inside the same transaction. The index caps the maximum at one; it does not require a minimum — **zero active primary memberships is a valid, supported state.**
+
+## Confirmed: a student may have zero active group memberships
+
+Investigated explicitly (not assumed) whether any schema constraint or RPC logic requires an active student to always have an active group. It does not, on either side:
+
+- `end_student_group_membership` takes only `membership_id` — it has no group parameter, so it cannot request or require a destination even if it wanted to. It marks the row `status = 'inactive'` with `is_primary = false` and a safe `ended_at`, and never inserts a replacement row.
+- `academic_profile_contexts.academic_group_id` is nullable with no constraint anywhere forcing it to be set when `status = 'active'`.
+- `eligible_students` in `get_student_group_membership_editor_overview` queries `profiles` only — it has no join to `academic_profile_contexts` — so a student's group state (including having none) never affects their eligibility to be added to a group later.
+- `add_student_to_group`'s primary-conflict check only fires when an existing active primary row *still has a group* (`existing_primary_group_id is not null`); after a membership is ended, that condition is false, so the student can be freely assigned to a new compatible group with no leftover blocker.
+- Ending a membership only ever changes `status`/`ended_at`/`is_primary` on that one row — `organization_id`, `academic_program_id`, `academic_year_id`, and `academic_term_id` are left exactly as they were, so the ended membership's own history remains fully visible (not just in the audit log) in the group's member panel.
+
+No code path anywhere assumed the opposite; the UI's "End membership" button already submitted no destination-group field. This turn's change was documentation and copy, not a behavior fix: an explicit comment was added directly above `end_student_group_membership` in migration 012 stating this guarantee for future readers, and the success message was updated to state explicitly that the student is not currently assigned to a group (see below).
 
 ## Exact hierarchy compatibility rules
 

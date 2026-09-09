@@ -439,6 +439,19 @@ begin
 end;
 $$;
 
+-- Business rule, confirmed by inspection (see TASK 004.6 docs): a student
+-- MAY have zero active group memberships. Ending never requires or creates
+-- a destination membership -- this function's own signature has no group
+-- parameter, so a forced reassignment is structurally impossible, not just
+-- unimplemented. The row is only marked inactive (status/ended_at/
+-- is_primary); its organization_id/academic_program_id/academic_year_id/
+-- academic_term_id values are left untouched on the row, so the group
+-- membership's history remains fully intact and queryable -- only the
+-- group placement itself ends. add_student_to_group's own primary-conflict
+-- check only fires when an active primary row still has a group
+-- (existing_primary_group_id is not null), so a student left without an
+-- active row here is freely eligible to be added to a new compatible group
+-- afterward, with no leftover blocker from the ended membership.
 create or replace function public.end_student_group_membership(
   requested_profile_id uuid,
   membership_id uuid
