@@ -41,3 +41,76 @@ Before starting implementation, always run:
 git branch --show-current
 git status
 ```
+
+## 2. Parallel-agent safety
+
+- Codex and Claude Code may work at the same time only on different tasks.
+- Each task must use its own branch and isolated worktree or working directory.
+- Do not modify another agent's branch, worktree, or task files.
+- Avoid editing the same shared files in parallel when possible.
+- If two active tasks need changes to the same file or database area, stop and report the conflict before continuing.
+- Do not merge or cherry-pick another active task unless explicitly instructed.
+
+## 3. Database and Supabase safety
+
+- Only one active task may modify the same database area at a time.
+- Never modify an existing committed migration.
+- Every schema change must use a new migration file.
+- Never reset or run destructive commands against a remote or production database.
+- Never weaken RLS or authorization rules just to make a task work.
+- Do not apply remote migrations unless explicitly instructed.
+- If another active task may touch the same tables, RPCs, policies, or migrations, stop and report the conflict.
+
+## 4. Required validation
+
+Before declaring a task complete, run:
+
+```bash
+pnpm lint
+pnpm build
+git diff --check
+git status
+```
+
+Also inspect:
+
+```bash
+git diff
+```
+
+Do not claim a check passed unless it was actually executed successfully.
+
+## 5. Secrets and environment files
+
+- Never commit `.env`, `.env.local`, API keys, passwords, access tokens, or Supabase service-role keys.
+- Only documented templates such as `.env.example` may be committed.
+- Never print secrets in logs, documentation, commits, pull requests, or screenshots.
+- If a required secret is not already securely available in the environment, stop and request operator action.
+
+## 6. Task scope
+
+- Implement only the requirements of the current task.
+- Do not add unrelated features or refactor unrelated areas.
+- Reuse existing project patterns, helpers, components, and types where possible.
+- Do not silently fix unrelated issues; report them separately.
+- If the task conflicts with the real repository or database schema, stop and explain the conflict instead of guessing.
+
+## 7. Package manager and dependencies
+
+- Use `pnpm` for this repository.
+- Do not replace pnpm with npm, yarn, or bun.
+- Do not add dependencies unless the current task requires them.
+- Do not upgrade framework or package versions as part of an unrelated task.
+- Keep dependency changes minimal and task-specific.
+
+## 8. Task completion
+
+At the end of every task:
+
+- Summarize what was implemented.
+- List the files changed.
+- Mention any database or migration changes.
+- Report the results of `pnpm lint`, `pnpm build`, and `git diff --check`.
+- State clearly what manual QA is still required.
+- Do not start another task automatically.
+- Do not merge into `main`; leave the task ready for pull request review.
