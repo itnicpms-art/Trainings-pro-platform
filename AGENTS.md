@@ -40,3 +40,4 @@ Before starting implementation, always run:
 ```bash
 git branch --show-current
 git status
+```
