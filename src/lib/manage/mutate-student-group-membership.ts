@@ -131,6 +131,23 @@ export async function mutateStudentGroupMembership(formData: FormData): Promise<
       break;
   }
 
-  if (!result.error) return { status: "success", intent: input.intent };
+  if (!result.error) {
+    // Defensive verification: a Postgres call can return without an `error`
+    // even if the row does not end up in the state the intent claims. Check
+    // the RPC's own returned row snapshot before trusting "no error" as
+    // "the operation actually took effect" — this converts a silent
+    // mismatch into a visible, safe error instead of a stale-looking UI.
+    const returnedRow = result.data as { status?: string; is_primary?: boolean } | null;
+    if (input.intent === "end" && returnedRow?.status !== "inactive") {
+      return { status: "error", intent: input.intent, reason: "unavailable" };
+    }
+    if (input.intent === "move" && returnedRow?.status !== "active") {
+      return { status: "error", intent: input.intent, reason: "unavailable" };
+    }
+    if (input.intent === "setPrimary" && returnedRow?.is_primary !== true) {
+      return { status: "error", intent: input.intent, reason: "unavailable" };
+    }
+    return { status: "success", intent: input.intent };
+  }
   return { status: "error", intent: input.intent, reason: mapMembershipError(result.error) };
 }

@@ -10,6 +10,20 @@
 - Left Professor/Coordinator/Program Coordinator, `/admin/organizations`, and all prior academic editors (units, programs, years, terms, groups) completely untouched.
 - Implemented no self-service join-request workflow — see the explicit confirmation below.
 
+## Investigation: "student still shown as active" after End membership
+
+Runtime QA reported that after clicking End, the student kept appearing as an active member — with no error shown, after the earlier `ended_at` constraint bug was already fixed and migration 012 re-applied. This was investigated end-to-end without database access, by tracing every layer of the actual code:
+
+- `end_student_group_membership`'s SQL was re-read line by line: it correctly targets the submitted `membership_id`, updates `status`/`ended_at`/`is_primary` only when the row is currently `active`, and raises a real exception (which would surface as a visible error) if it is not.
+- The "End" form's hidden fields (`intent`, `locale`, `membership_id`) were re-verified present and correctly wired to `mutate-student-group-membership.ts`'s zod schema and RPC call.
+- Zod v4's `discriminatedUnion` behavior was verified directly (not assumed): extra form fields the "end" branch doesn't declare are silently stripped, and a real `gen_random_uuid()`-shaped id parses successfully — no validation bug here.
+- This project's actual Next.js version's `revalidatePath`/caching docs (`node_modules/next/dist/docs/`, since this fork deviates from stock Next.js per `AGENTS.md`) were read directly: `fetch` requests are not cached by default in this build's active model (`cacheComponents` is not enabled in `next.config.ts`), and `revalidatePath` from a Server Function updates a currently-viewed path's UI immediately — matching how the action here is wired.
+
+No further logic bug was found in the RPC, the schema validation, or the revalidation call. Given a live database wasn't available to directly confirm the row's post-call state, two independent, low-risk improvements were made instead of leaving the report inconclusive:
+
+1. **Defensive payload verification** in `mutateStudentGroupMembership`: after a successful RPC call, the returned row's own `status`/`is_primary` fields are checked against what each intent claims to have done (`end` → `status: 'inactive'`, `move` → `status: 'active'`, `setPrimary` → `is_primary: true`). Any mismatch is now treated as an error instead of blindly trusting "no Postgres error" as "the operation did what it claims."
+2. **UI restructuring**: the membership panel now shows *only* active memberships in the main list; ended ones move into a separate, clearly labeled, collapsed "Membership history" disclosure. Previously both were mixed in one list distinguished only by a badge color, which could read as "the student is still there" even when the status had changed correctly. This removes that ambiguity regardless of the underlying cause.
+
 ## Membership schema/model used
 
 `public.academic_profile_contexts` (migration 004), unmodified. Relevant columns: `id`, `profile_id`, `organization_id`, `academic_program_id`, `academic_year_id` (nullable), `academic_term_id` (nullable), `academic_group_id` (nullable), `status`, `is_primary`, `started_at`, `ended_at`. No column was added.

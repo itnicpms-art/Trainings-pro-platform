@@ -166,9 +166,9 @@ export function GroupMembershipPanel({
   translations: EditorTranslations;
   action: MutationAction;
 }) {
-  const groupMemberships = memberships
-    .filter((membership) => membership.academic_group_id === group.id)
-    .sort((a, b) => (a.status === b.status ? 0 : a.status === "active" ? -1 : 1));
+  const groupMemberships = memberships.filter((membership) => membership.academic_group_id === group.id);
+  const activeMemberships = groupMemberships.filter((membership) => membership.status === "active");
+  const endedMemberships = groupMemberships.filter((membership) => membership.status !== "active");
   const moveTargets = allGroups.filter((candidate) => candidate.academic_program_id === group.academic_program_id && candidate.id !== group.id && candidate.status !== "archived");
 
   return (
@@ -181,15 +181,25 @@ export function GroupMembershipPanel({
       </CardHeader>
       <CardContent className="space-y-3">
         <AddStudentForm action={action} locale={locale} targetUniversityId={targetUniversityId} targetGroupId={group.id} eligibleStudents={eligibleStudents} translations={t} />
-        {groupMemberships.length === 0 ? (
+        {activeMemberships.length === 0 ? (
           <p className="py-4 text-center text-sm text-slate-500">{t.empty}</p>
         ) : (
           <div className="space-y-2">
-            {groupMemberships.map((membership) => (
+            {activeMemberships.map((membership) => (
               <MembershipRow key={membership.id} membership={membership} locale={locale} moveTargets={moveTargets} action={action} translations={t} />
             ))}
           </div>
         )}
+        {endedMemberships.length > 0 ? (
+          <details className="rounded-xl border border-slate-200 bg-white px-3">
+            <summary className="cursor-pointer list-none py-2 text-xs font-semibold text-slate-500 [&::-webkit-details-marker]:hidden">{t.historyTitle} ({endedMemberships.length})</summary>
+            <div className="space-y-2 pb-3">
+              {endedMemberships.map((membership) => (
+                <MembershipRow key={membership.id} membership={membership} locale={locale} moveTargets={moveTargets} action={action} translations={t} />
+              ))}
+            </div>
+          </details>
+        ) : null}
         <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-3 text-xs leading-5 text-amber-900">{t.hierarchyNote}</div>
         <div className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 text-emerald-900"><ShieldCheck className="mt-0.5 size-4 shrink-0" /><div><p className="text-sm font-semibold">{t.auditTitle}</p><p className="mt-1 text-xs leading-5 text-emerald-800">{t.auditDescription}</p></div><CheckCircle2 className="ml-auto size-4 shrink-0" /></div>
       </CardContent>
