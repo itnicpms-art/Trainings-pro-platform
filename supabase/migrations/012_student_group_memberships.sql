@@ -487,26 +487,65 @@ begin
   -- order_check (migration 004, unmodified) would reject. NULL start dates
   -- are ignored by greatest(), so this still resolves to current_date in
   -- the common case.
-  update public.academic_profile_contexts context
-  set status = 'inactive',
-      ended_at = greatest(current_date, existing_membership.started_at),
-      is_primary = false
-  where context.id = existing_membership.id
-    and context.status = 'active'
-  returning context.* into updated_row;
+  --
+  -- Diagnostic + isolation wrapping: runtime QA reported the row still
+  -- status='active' after calling this RPC with no visible client error.
+  -- Every constraint, trigger, and column on academic_profile_contexts and
+  -- student_group_membership_audit_events was re-checked against this
+  -- exact UPDATE and the audit INSERT below and none should fail on the
+  -- current schema -- but a plpgsql function is one transaction, so if
+  -- either statement threw for a reason this review missed, the exception
+  -- would normally abort the whole call and roll back the UPDATE along
+  -- with it, which exactly matches the reported symptom.
+  --
+  -- The UPDATE stays fail-closed: if it cannot actually change the row,
+  -- there is nothing valid to return, so its handler re-raises (with the
+  -- real sqlstate/sqlerrm folded into the message so the failure is no
+  -- longer silent) and the call aborts as before.
+  --
+  -- The audit INSERT is now fail-open by design: the ended_at state change
+  -- above is the actual, user-requested business outcome, and the audit
+  -- trail is a secondary record of it, not a precondition for it -- the
+  -- caller's own success criteria never depend on the audit row existing.
+  -- If the INSERT ever throws, its handler downgrades to raise warning
+  -- (which is logged server-side and never aborts the transaction or
+  -- reaches the HTTP/client layer, unlike raise exception) so the
+  -- membership still ends successfully and the failure is still visible
+  -- in Supabase's own Postgres logs for follow-up, without ever exposing
+  -- raw DB details to the end user.
+  begin
+    update public.academic_profile_contexts context
+    set status = 'inactive',
+        ended_at = greatest(current_date, existing_membership.started_at),
+        is_primary = false
+    where context.id = existing_membership.id
+      and context.status = 'active'
+    returning context.* into updated_row;
+  exception
+    when others then
+      raise exception 'end_student_group_membership: UPDATE failed for membership % (sqlstate=%, detail=%)',
+        existing_membership.id, sqlstate, sqlerrm
+        using errcode = '22023';
+  end;
 
   if updated_row.id is null then
     raise exception 'Only an active membership can be ended' using errcode = '22023';
   end if;
 
-  insert into public.student_group_membership_audit_events (
-    actor_user_id, actor_profile_id, actor_role, action, resource_id,
-    student_profile_id, organization_id, old_academic_group_id, new_academic_group_id, before_snapshot, after_snapshot
-  ) values (
-    auth.uid(), requested_profile_id, actor_mode, 'end', updated_row.id,
-    existing_membership.profile_id, existing_membership.organization_id,
-    existing_membership.academic_group_id, null, to_jsonb(existing_membership), to_jsonb(updated_row)
-  );
+  begin
+    insert into public.student_group_membership_audit_events (
+      actor_user_id, actor_profile_id, actor_role, action, resource_id,
+      student_profile_id, organization_id, old_academic_group_id, new_academic_group_id, before_snapshot, after_snapshot
+    ) values (
+      auth.uid(), requested_profile_id, actor_mode, 'end', updated_row.id,
+      existing_membership.profile_id, existing_membership.organization_id,
+      existing_membership.academic_group_id, null, to_jsonb(existing_membership), to_jsonb(updated_row)
+    );
+  exception
+    when others then
+      raise warning 'end_student_group_membership: audit INSERT failed for membership % (sqlstate=%, detail=%)',
+        updated_row.id, sqlstate, sqlerrm;
+  end;
 
   return to_jsonb(updated_row);
 end;
