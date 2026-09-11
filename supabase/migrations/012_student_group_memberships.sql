@@ -465,6 +465,10 @@ declare
   actor_mode text;
   existing_membership public.academic_profile_contexts%rowtype;
   updated_row public.academic_profile_contexts%rowtype;
+  diag_sqlstate text;
+  diag_constraint text;
+  diag_table text;
+  diag_message text;
 begin
   if auth.uid() is null then
     raise exception 'Active profile ownership required' using errcode = '42501';
@@ -488,31 +492,17 @@ begin
   -- are ignored by greatest(), so this still resolves to current_date in
   -- the common case.
   --
-  -- Diagnostic + isolation wrapping: runtime QA reported the row still
-  -- status='active' after calling this RPC with no visible client error.
-  -- Every constraint, trigger, and column on academic_profile_contexts and
-  -- student_group_membership_audit_events was re-checked against this
-  -- exact UPDATE and the audit INSERT below and none should fail on the
-  -- current schema -- but a plpgsql function is one transaction, so if
-  -- either statement threw for a reason this review missed, the exception
-  -- would normally abort the whole call and roll back the UPDATE along
-  -- with it, which exactly matches the reported symptom.
-  --
-  -- The UPDATE stays fail-closed: if it cannot actually change the row,
-  -- there is nothing valid to return, so its handler re-raises (with the
-  -- real sqlstate/sqlerrm folded into the message so the failure is no
-  -- longer silent) and the call aborts as before.
-  --
-  -- The audit INSERT is now fail-open by design: the ended_at state change
-  -- above is the actual, user-requested business outcome, and the audit
-  -- trail is a secondary record of it, not a precondition for it -- the
-  -- caller's own success criteria never depend on the audit row existing.
-  -- If the INSERT ever throws, its handler downgrades to raise warning
-  -- (which is logged server-side and never aborts the transaction or
-  -- reaches the HTTP/client layer, unlike raise exception) so the
-  -- membership still ends successfully and the failure is still visible
-  -- in Supabase's own Postgres logs for follow-up, without ever exposing
-  -- raw DB details to the end user.
+  -- Diagnostic wrapping only -- NOT a way to bypass atomicity. The
+  -- membership state change and its audit record must both succeed or
+  -- both roll back, exactly like every other admin mutation in this file:
+  -- if either statement below throws, its handler captures the real
+  -- failure via GET STACKED DIAGNOSTICS, writes the full detail to the
+  -- server-side Postgres log only (raise log never reaches the client),
+  -- then re-raises a stable, business-safe stage code so the call still
+  -- aborts and rolls back everything, same as if no handler existed here
+  -- at all. mutate-student-group-membership.ts never sees these stage
+  -- codes as anything but an unrecognized 22023 message, so end users
+  -- still only ever get the existing generic, localized error text.
   begin
     update public.academic_profile_contexts context
     set status = 'inactive',
@@ -523,9 +513,14 @@ begin
     returning context.* into updated_row;
   exception
     when others then
-      raise exception 'end_student_group_membership: UPDATE failed for membership % (sqlstate=%, detail=%)',
-        existing_membership.id, sqlstate, sqlerrm
-        using errcode = '22023';
+      get stacked diagnostics
+        diag_sqlstate = returned_sqlstate,
+        diag_constraint = constraint_name,
+        diag_table = table_name,
+        diag_message = message_text;
+      raise log 'end_student_group_membership: END_MEMBERSHIP_UPDATE_FAILED membership_id=% sqlstate=% constraint=% table=% detail=%',
+        existing_membership.id, diag_sqlstate, diag_constraint, diag_table, diag_message;
+      raise exception 'END_MEMBERSHIP_UPDATE_FAILED' using errcode = '22023';
   end;
 
   if updated_row.id is null then
@@ -543,8 +538,14 @@ begin
     );
   exception
     when others then
-      raise warning 'end_student_group_membership: audit INSERT failed for membership % (sqlstate=%, detail=%)',
-        updated_row.id, sqlstate, sqlerrm;
+      get stacked diagnostics
+        diag_sqlstate = returned_sqlstate,
+        diag_constraint = constraint_name,
+        diag_table = table_name,
+        diag_message = message_text;
+      raise log 'end_student_group_membership: END_MEMBERSHIP_AUDIT_FAILED membership_id=% sqlstate=% constraint=% table=% detail=%',
+        updated_row.id, diag_sqlstate, diag_constraint, diag_table, diag_message;
+      raise exception 'END_MEMBERSHIP_AUDIT_FAILED' using errcode = '22023';
   end;
 
   return to_jsonb(updated_row);

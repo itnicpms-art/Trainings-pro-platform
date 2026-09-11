@@ -149,5 +149,19 @@ export async function mutateStudentGroupMembership(formData: FormData): Promise<
     }
     return { status: "success", intent: input.intent };
   }
+  // TEMPORARY diagnostic (TASK 004.6 runtime QA): end_student_group_membership
+  // now raises a stable stage code (END_MEMBERSHIP_UPDATE_FAILED /
+  // END_MEMBERSHIP_AUDIT_FAILED) instead of a business-message when the
+  // underlying UPDATE or audit INSERT throws. Logging the raw code/message
+  // here -- server-side only, this file is "server-only" -- surfaces the
+  // failing stage in server/function logs on the next reproduction without
+  // ever changing what mapMembershipError returns to the client below.
+  // Remove once the root cause is confirmed and permanently resolved.
+  if (input.intent === "end") {
+    console.error("[TASK 004.6 diagnostic] end_student_group_membership RPC error:", {
+      code: result.error.code,
+      message: result.error.message,
+    });
+  }
   return { status: "error", intent: input.intent, reason: mapMembershipError(result.error) };
 }
