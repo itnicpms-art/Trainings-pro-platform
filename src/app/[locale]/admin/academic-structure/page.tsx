@@ -14,6 +14,7 @@ import { getAdminAcademicCalendarEditor } from "@/lib/admin/get-admin-academic-c
 import { getAdminAcademicGroupsEditor } from "@/lib/admin/get-admin-academic-groups-editor";
 import { getAdminAcademicProgramsEditor } from "@/lib/admin/get-admin-academic-programs-editor";
 import { getAdminAcademicUnitsEditor } from "@/lib/admin/get-admin-academic-units-editor";
+import { getAdminStudentGroupMembershipEditor } from "@/lib/admin/get-admin-student-group-membership-editor";
 import { cn } from "@/lib/utils";
 import {
   mutateAdminAcademicGroupAction,
@@ -21,6 +22,7 @@ import {
   mutateAdminAcademicTermAction,
   mutateAdminAcademicUnitAction,
   mutateAdminAcademicYearAction,
+  mutateAdminStudentGroupMembershipAction,
 } from "./actions";
 
 type SearchParams = Promise<{ university?: string | string[] }>;
@@ -30,12 +32,13 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
   const query = await searchParams;
   const requestedUniversity = Array.isArray(query.university) ? query.university[0] : query.university;
   const targetUniversityId = z.uuid().safeParse(requestedUniversity).success ? requestedUniversity! : null;
-  const [dictionary, overview, programsOverview, calendarOverview, groupsOverview] = await Promise.all([
+  const [dictionary, overview, programsOverview, calendarOverview, groupsOverview, membershipOverview] = await Promise.all([
     getDictionary(locale),
     getAdminAcademicUnitsEditor(targetUniversityId),
     getAdminAcademicProgramsEditor(targetUniversityId),
     getAdminAcademicCalendarEditor(targetUniversityId),
     getAdminAcademicGroupsEditor(targetUniversityId),
+    getAdminStudentGroupMembershipEditor(targetUniversityId),
   ]);
   const t = dictionary.admin.academicStructure;
 
@@ -94,6 +97,9 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
                   overview={groupsOverview}
                   translations={dictionary.app.structureManagement.academic.groupsEditor}
                   action={mutateAdminAcademicGroupAction}
+                  membershipOverview={membershipOverview}
+                  membershipTranslations={dictionary.app.structureManagement.academic.membershipEditor}
+                  membershipAction={mutateAdminStudentGroupMembershipAction}
                 />
               ) : null}
             </>

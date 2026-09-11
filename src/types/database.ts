@@ -150,6 +150,26 @@ export type AcademicGroupsEditorOverview = {
   }>;
 };
 
+export type StudentGroupMembershipEditorOverview = {
+  actor_profile_id: string;
+  actor_mode: "university_admin" | "platform_admin";
+  selected_university: { id: string; name: string; status: EntityStatus } | null;
+  universities: Array<{ id: string; name: string; status: EntityStatus }>;
+  groups: Array<{ id: string; code: string; name: string; status: EditableAcademicUnitStatus; academic_program_id: string }>;
+  eligible_students: Array<{ id: string; display_name: string }>;
+  memberships: Array<{
+    id: string;
+    student_profile_id: string;
+    student_display_name: string;
+    academic_group_id: string;
+    academic_program_id: string;
+    status: EntityStatus;
+    is_primary: boolean;
+    started_at: string | null;
+    ended_at: string | null;
+  }>;
+};
+
 export type PlatformAdminOrganizationsEditorOverview = {
   actor_profile_id: string;
   organizations: Array<{
@@ -232,6 +252,12 @@ export type Database = {
       academic_group_audit_events: {
         Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type: "academic_group"; resource_id: string | null; organization_id: string; before_snapshot: Json | null; after_snapshot: Json | null };
         Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "update" | "status_change"; resource_type?: "academic_group"; resource_id?: string | null; organization_id: string; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      student_group_membership_audit_events: {
+        Row: Timestamped & { id: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "move" | "end" | "primary_change"; resource_type: "academic_profile_context"; resource_id: string | null; student_profile_id: string; organization_id: string; old_academic_group_id: string | null; new_academic_group_id: string | null; before_snapshot: Json | null; after_snapshot: Json | null };
+        Insert: { id?: string; actor_user_id: string; actor_profile_id: string; actor_role: "university_admin" | "platform_admin"; action: "create" | "move" | "end" | "primary_change"; resource_type?: "academic_profile_context"; resource_id?: string | null; student_profile_id: string; organization_id: string; old_academic_group_id?: string | null; new_academic_group_id?: string | null; before_snapshot?: Json | null; after_snapshot?: Json | null; created_at?: string };
         Update: never;
         Relationships: [];
       };
@@ -526,6 +552,32 @@ export type Database = {
           status: EditableAcademicUnitStatus;
         };
         Returns: AcademicGroupsEditorOverview["academic_groups"][number];
+      };
+      get_student_group_membership_editor_overview: {
+        Args: { requested_profile_id: string; target_university_id?: string | null };
+        Returns: StudentGroupMembershipEditorOverview;
+      };
+      add_student_to_group: {
+        Args: {
+          requested_profile_id: string;
+          target_university_id: string;
+          target_group_id: string;
+          student_profile_id: string;
+          is_primary?: boolean;
+        };
+        Returns: StudentGroupMembershipEditorOverview["memberships"][number];
+      };
+      move_student_group_membership: {
+        Args: { requested_profile_id: string; membership_id: string; target_group_id: string };
+        Returns: StudentGroupMembershipEditorOverview["memberships"][number];
+      };
+      end_student_group_membership: {
+        Args: { requested_profile_id: string; membership_id: string };
+        Returns: StudentGroupMembershipEditorOverview["memberships"][number];
+      };
+      set_primary_group_membership: {
+        Args: { requested_profile_id: string; membership_id: string };
+        Returns: StudentGroupMembershipEditorOverview["memberships"][number];
       };
       get_platform_admin_organizations_editor: {
         Args: { requested_profile_id: string };

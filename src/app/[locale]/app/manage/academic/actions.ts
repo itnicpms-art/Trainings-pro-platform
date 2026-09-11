@@ -8,6 +8,7 @@ import { mutateAcademicProgram, type AcademicProgramActionState } from "@/lib/ma
 import { mutateAcademicTerm, type AcademicTermActionState } from "@/lib/manage/mutate-academic-term";
 import { mutateAcademicUnit, type AcademicUnitActionState } from "@/lib/manage/mutate-academic-unit";
 import { mutateAcademicYear, type AcademicYearActionState } from "@/lib/manage/mutate-academic-year";
+import { mutateStudentGroupMembership, type StudentGroupMembershipActionState } from "@/lib/manage/mutate-student-group-membership";
 
 export async function mutateUniversityAcademicUnitAction(
   _previousState: AcademicUnitActionState,
@@ -62,6 +63,18 @@ export async function mutateUniversityAcademicGroupAction(
   formData: FormData,
 ): Promise<AcademicGroupActionState> {
   const result = await mutateAcademicGroup(formData);
+  const locale = formData.get("locale");
+  if (result.status === "success" && typeof locale === "string" && isLocale(locale)) {
+    revalidatePath(`/${locale}/app/manage/academic`);
+  }
+  return result;
+}
+
+export async function mutateUniversityStudentGroupMembershipAction(
+  _previousState: StudentGroupMembershipActionState,
+  formData: FormData,
+): Promise<StudentGroupMembershipActionState> {
+  const result = await mutateStudentGroupMembership(formData);
   const locale = formData.get("locale");
   if (result.status === "success" && typeof locale === "string" && isLocale(locale)) {
     revalidatePath(`/${locale}/app/manage/academic`);
