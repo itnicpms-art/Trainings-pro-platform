@@ -404,15 +404,9 @@ begin
     raise exception 'Student already has an active membership in this group' using errcode = '23505';
   end if;
 
-  -- greatest(...) protects against a future-dated started_at (e.g. a
-  -- membership scheduled to start next term): ending it today must never
-  -- produce ended_at < started_at, which academic_profile_contexts_date_
-  -- order_check (migration 004, unmodified) would reject. NULL start dates
-  -- are ignored by greatest(), so this still resolves to current_date in
-  -- the common case.
   update public.academic_profile_contexts context
   set status = 'inactive',
-      ended_at = greatest(current_date, existing_membership.started_at),
+      ended_at = current_date,
       is_primary = false
   where context.id = existing_membership.id
   returning context.* into ended_row;
@@ -439,19 +433,6 @@ begin
 end;
 $$;
 
--- Business rule, confirmed by inspection (see TASK 004.6 docs): a student
--- MAY have zero active group memberships. Ending never requires or creates
--- a destination membership -- this function's own signature has no group
--- parameter, so a forced reassignment is structurally impossible, not just
--- unimplemented. The row is only marked inactive (status/ended_at/
--- is_primary); its organization_id/academic_program_id/academic_year_id/
--- academic_term_id values are left untouched on the row, so the group
--- membership's history remains fully intact and queryable -- only the
--- group placement itself ends. add_student_to_group's own primary-conflict
--- check only fires when an active primary row still has a group
--- (existing_primary_group_id is not null), so a student left without an
--- active row here is freely eligible to be added to a new compatible group
--- afterward, with no leftover blocker from the ended membership.
 create or replace function public.end_student_group_membership(
   requested_profile_id uuid,
   membership_id uuid
@@ -465,10 +446,6 @@ declare
   actor_mode text;
   existing_membership public.academic_profile_contexts%rowtype;
   updated_row public.academic_profile_contexts%rowtype;
-  diag_sqlstate text;
-  diag_constraint text;
-  diag_table text;
-  diag_message text;
 begin
   if auth.uid() is null then
     raise exception 'Active profile ownership required' using errcode = '42501';
@@ -485,68 +462,26 @@ begin
 
   actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, existing_membership.organization_id);
 
-  -- greatest(...) protects against a future-dated started_at (e.g. a
-  -- membership scheduled to start next term): ending it today must never
-  -- produce ended_at < started_at, which academic_profile_contexts_date_
-  -- order_check (migration 004, unmodified) would reject. NULL start dates
-  -- are ignored by greatest(), so this still resolves to current_date in
-  -- the common case.
-  --
-  -- Diagnostic wrapping only -- NOT a way to bypass atomicity. The
-  -- membership state change and its audit record must both succeed or
-  -- both roll back, exactly like every other admin mutation in this file:
-  -- if either statement below throws, its handler captures the real
-  -- failure via GET STACKED DIAGNOSTICS, writes the full detail to the
-  -- server-side Postgres log only (raise log never reaches the client),
-  -- then re-raises a stable, business-safe stage code so the call still
-  -- aborts and rolls back everything, same as if no handler existed here
-  -- at all. mutate-student-group-membership.ts never sees these stage
-  -- codes as anything but an unrecognized 22023 message, so end users
-  -- still only ever get the existing generic, localized error text.
-  begin
-    update public.academic_profile_contexts context
-    set status = 'inactive',
-        ended_at = greatest(current_date, existing_membership.started_at),
-        is_primary = false
-    where context.id = existing_membership.id
-      and context.status = 'active'
-    returning context.* into updated_row;
-  exception
-    when others then
-      get stacked diagnostics
-        diag_sqlstate = returned_sqlstate,
-        diag_constraint = constraint_name,
-        diag_table = table_name,
-        diag_message = message_text;
-      raise log 'end_student_group_membership: END_MEMBERSHIP_UPDATE_FAILED membership_id=% sqlstate=% constraint=% table=% detail=%',
-        existing_membership.id, diag_sqlstate, diag_constraint, diag_table, diag_message;
-      raise exception 'END_MEMBERSHIP_UPDATE_FAILED' using errcode = '22023';
-  end;
+  update public.academic_profile_contexts context
+  set status = 'inactive',
+      ended_at = current_date,
+      is_primary = false
+  where context.id = existing_membership.id
+    and context.status = 'active'
+  returning context.* into updated_row;
 
   if updated_row.id is null then
     raise exception 'Only an active membership can be ended' using errcode = '22023';
   end if;
 
-  begin
-    insert into public.student_group_membership_audit_events (
-      actor_user_id, actor_profile_id, actor_role, action, resource_id,
-      student_profile_id, organization_id, old_academic_group_id, new_academic_group_id, before_snapshot, after_snapshot
-    ) values (
-      auth.uid(), requested_profile_id, actor_mode, 'end', updated_row.id,
-      existing_membership.profile_id, existing_membership.organization_id,
-      existing_membership.academic_group_id, null, to_jsonb(existing_membership), to_jsonb(updated_row)
-    );
-  exception
-    when others then
-      get stacked diagnostics
-        diag_sqlstate = returned_sqlstate,
-        diag_constraint = constraint_name,
-        diag_table = table_name,
-        diag_message = message_text;
-      raise log 'end_student_group_membership: END_MEMBERSHIP_AUDIT_FAILED membership_id=% sqlstate=% constraint=% table=% detail=%',
-        updated_row.id, diag_sqlstate, diag_constraint, diag_table, diag_message;
-      raise exception 'END_MEMBERSHIP_AUDIT_FAILED' using errcode = '22023';
-  end;
+  insert into public.student_group_membership_audit_events (
+    actor_user_id, actor_profile_id, actor_role, action, resource_id,
+    student_profile_id, organization_id, old_academic_group_id, new_academic_group_id, before_snapshot, after_snapshot
+  ) values (
+    auth.uid(), requested_profile_id, actor_mode, 'end', updated_row.id,
+    existing_membership.profile_id, existing_membership.organization_id,
+    existing_membership.academic_group_id, null, to_jsonb(existing_membership), to_jsonb(updated_row)
+  );
 
   return to_jsonb(updated_row);
 end;
