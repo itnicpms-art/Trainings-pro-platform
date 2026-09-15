@@ -33,11 +33,13 @@ function safeFormValue(formData: FormData, key: string) {
 }
 
 // add_student_to_group/move_student_group_membership/end_student_group_membership/
-// set_primary_group_membership (migration 012) raise every business-rule
-// violation with errcode 22023, distinguished only by message text. These
-// strings are authored in that migration and matched verbatim here instead
-// of widening the RPC's error surface with new SQLSTATEs — the same
-// approach already used for academic years/terms/groups.
+// set_primary_group_membership raise every business-rule violation with
+// errcode 22023, distinguished only by message text. These strings are
+// authored across migration 012 and its forward-only fixes (013, 014 —
+// see AGENTS.md's "never modify an existing committed migration" rule)
+// and matched verbatim here instead of widening the RPC's error surface
+// with new SQLSTATEs — the same approach already used for academic
+// years/terms/groups.
 const STUDENT_NOT_ELIGIBLE_MESSAGES = new Set([
   "Student profile not found in this university",
 ]);
@@ -71,10 +73,11 @@ function mapMembershipError(error: { code?: string; message?: string }): NonNull
   }
   // Defensive safety net: academic_profile_contexts_date_order_check
   // (migration 004) could still fire for a scenario this RPC layer does not
-  // yet anticipate. The RPC itself now avoids the known future-started_at
-  // case (see migration 012's greatest(current_date, started_at) fix), but
-  // a raw check-constraint violation must never surface as a Postgres error
-  // to the user regardless.
+  // yet anticipate. The RPCs themselves now avoid the known future-started_at
+  // case (see migration 013's fix to end_student_group_membership and
+  // migration 014's fix to move_student_group_membership, both using
+  // greatest(current_date, started_at)), but a raw check-constraint
+  // violation must never surface as a Postgres error to the user regardless.
   if (error.code === "23514") return "invalid";
   return "unavailable";
 }
