@@ -20,7 +20,7 @@
 | 004.3 | `tasks/TASK-004-3-academic-programs-editable-management.md` | Editare auditată și strict scoped pentru programe academice |
 | 004.4 | `tasks/TASK-004-4-academic-years-semesters-editable-management.md` | Editare auditată și strict scoped pentru ani academici și semestre |
 | 004.5 | `tasks/TASK-004-5-academic-groups-editable-management.md` | Editare auditată și strict scoped pentru grupe academice |
-| 004.6 | *(neimplementat)* | Alocare studenți în grupe academice |
+| 004.6 | `tasks/TASK-004-6-student-group-membership-management.md` | Alocare, mutare și încheiere auditată a apartenenței studenților la grupe |
 | 004.7 | *(neimplementat)* | Cereri de înscriere în grupă și flux de aprobare |
 | 004.8 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
@@ -137,6 +137,13 @@ TASK 004.4 permite numai crearea și actualizarea anilor academici și a semestr
 TASK 004.5 permite numai crearea și actualizarea grupelor academice (program obligatoriu, an și semestru opționale) prin RPC-uri auditate, reutilizând `resolve_academic_units_editor_mode` din migrarea 007. University Admin este limitat la propria universitate; Platform Admin lucrează global din `/admin/academic-structure`. Nu se creează, citește sau modifică nicio înregistrare de membership (`academic_profile_contexts`) și nu există niciun flux de cerere de înscriere. Nu există ștergere definitivă, iar `/admin/organizations` nu este afectată.
 
 TASK 004.6 (Alocare studenți în grupe academice) și TASK 004.7 (Cereri de înscriere în grupă și flux de aprobare) sunt task-uri viitoare planificate, dar neimplementate; TASK 004.5 nu adaugă niciun UI sau RPC pentru ele.
+
+## Documentație TASK 004.6
+
+- `docs/tasks/TASK-004-6-student-group-membership-management.md` — decizia de model (reutilizare `academic_profile_contexts`, fără tabelă nouă), regula de apartenență principală, decizia și dovezile privind accesul Professor/Coordonator, RPC-urile și auditul;
+- `docs/roadmap/TASK_004_6_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
+
+TASK 004.6 reutilizează `academic_profile_contexts` (existentă din migrarea 004) ca model de apartenență, fără o tabelă nouă de membership — schema reală modela deja relația necesară. Adaugă patru RPC-uri auditate (`add_student_to_group`, `move_student_group_membership`, `end_student_group_membership`, `set_primary_group_membership`), reutilizând `resolve_academic_units_editor_mode` din migrarea 007. University Admin și Platform Admin pot administra apartenența numai în universitatea proprie/selectată. Professor, Coordonator și Program Coordinator nu primesc acces nou (nici citire, nici scriere) — motivul exact, inclusiv dovezile din schema reală, este documentat în task. Nu există flux de cereri de înscriere (TASK 004.7) și nu există ștergere definitivă.
 
 ## Reguli de execuție
 
