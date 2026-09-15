@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { isLocale } from "@/i18n/config";
 import { mutateAcademicGroup, type AcademicGroupActionState } from "@/lib/manage/mutate-academic-group";
 import { mutateAcademicProgram, type AcademicProgramActionState } from "@/lib/manage/mutate-academic-program";
+import {
+  mutateAcademicProgramStaffAssignment,
+  type AcademicProgramStaffAssignmentActionState,
+} from "@/lib/manage/mutate-academic-program-staff-assignment";
 import { mutateAcademicTerm, type AcademicTermActionState } from "@/lib/manage/mutate-academic-term";
 import { mutateAcademicUnit, type AcademicUnitActionState } from "@/lib/manage/mutate-academic-unit";
 import { mutateAcademicYear, type AcademicYearActionState } from "@/lib/manage/mutate-academic-year";
@@ -75,6 +79,18 @@ export async function mutateUniversityStudentGroupMembershipAction(
   formData: FormData,
 ): Promise<StudentGroupMembershipActionState> {
   const result = await mutateStudentGroupMembership(formData);
+  const locale = formData.get("locale");
+  if (result.status === "success" && typeof locale === "string" && isLocale(locale)) {
+    revalidatePath(`/${locale}/app/manage/academic`);
+  }
+  return result;
+}
+
+export async function mutateAcademicProgramStaffAssignmentAction(
+  _previousState: AcademicProgramStaffAssignmentActionState,
+  formData: FormData,
+): Promise<AcademicProgramStaffAssignmentActionState> {
+  const result = await mutateAcademicProgramStaffAssignment(formData);
   const locale = formData.get("locale");
   if (result.status === "success" && typeof locale === "string" && isLocale(locale)) {
     revalidatePath(`/${locale}/app/manage/academic`);

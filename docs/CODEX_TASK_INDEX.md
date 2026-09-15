@@ -21,6 +21,7 @@
 | 004.4 | `tasks/TASK-004-4-academic-years-semesters-editable-management.md` | Editare auditată și strict scoped pentru ani academici și semestre |
 | 004.5 | `tasks/TASK-004-5-academic-groups-editable-management.md` | Editare auditată și strict scoped pentru grupe academice |
 | 004.6 | `tasks/TASK-004-6-student-group-membership-management.md` | Alocare, mutare și încheiere auditată a apartenenței studenților la grupe |
+| 004.6.1 | `tasks/TASK-004-6-1-academic-staff-program-access.md` | Alocări program-scoped pentru Professor/Program Coordinator și gestionare grupe/apartenențe în programul alocat |
 | 004.7 | *(neimplementat)* | Cereri de înscriere în grupă și flux de aprobare |
 | 004.8 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
@@ -144,6 +145,13 @@ TASK 004.6 (Alocare studenți în grupe academice) și TASK 004.7 (Cereri de în
 - `docs/roadmap/TASK_004_6_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
 
 TASK 004.6 reutilizează `academic_profile_contexts` (existentă din migrarea 004) ca model de apartenență, fără o tabelă nouă de membership — schema reală modela deja relația necesară. Adaugă patru RPC-uri auditate (`add_student_to_group`, `move_student_group_membership`, `end_student_group_membership`, `set_primary_group_membership`), reutilizând `resolve_academic_units_editor_mode` din migrarea 007. University Admin și Platform Admin pot administra apartenența numai în universitatea proprie/selectată. Professor, Coordonator și Program Coordinator nu primesc acces nou (nici citire, nici scriere) — motivul exact, inclusiv dovezile din schema reală, este documentat în task. Nu există flux de cereri de înscriere (TASK 004.7) și nu există ștergere definitivă.
+
+## Documentație TASK 004.6.1
+
+- `docs/tasks/TASK-004-6-1-academic-staff-program-access.md` — modelul de autorizare program-scoped, provizionarea alocărilor, regulile cross-program, vizibilitatea studenților și RPC-urile;
+- `docs/roadmap/TASK_004_6_1_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
+
+TASK 004.6.1 introduce autorizare program-scoped pentru Professor și Program Coordinator: alocarea la un program academic (`profile_roles(scope_type='program')`) controlează accesul, nu alocarea nominală la o grupă. Un profil poate avea mai multe alocări de program simultan. University Admin și Platform Admin pot aloca/revoca aceste roluri numai în universitatea proprie/selectată; Program Coordinator nu poate aloca autorizare la nivel de program în acest task. Migrația 016 (forward-only, migrațiile 001–015 rămân neschimbate) extinde RPC-urile TASK 004.5/004.6 cu un al doilea mod de autorizare, adaugă `resolve_academic_program_editor_mode`, `grant_academic_program_staff_role`, `revoke_academic_program_staff_role` și o tabelă de audit dedicată. Alocarea nominală profesor↔grupă, auto-solicitarea și aprobarea de către Program Coordinator rămân TASK 004.6.2; cererile de înscriere ale studenților rămân TASK 004.7. TASK 004.8 (cursuri/curriculum, Codex) nu este atins.
 
 ## Reguli de execuție
 
