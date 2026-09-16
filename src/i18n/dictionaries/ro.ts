@@ -488,7 +488,7 @@ const ro = {
           statuses: { active: "Activ", inactive: "Inactiv", archived: "Arhivat" },
           auditTitle: "Modificări auditate",
           auditDescription: "Fiecare creare, actualizare sau schimbare de status este înregistrată de RPC-ul securizat.",
-          hierarchyStatusNote: "O grupă nu poate fi creată sau mutată într-un program, an sau semestru arhivat, iar o grupă activă necesită un context academic activ. Alocarea studenților în grupe rămâne o etapă viitoare.",
+          hierarchyStatusNote: "O grupă nu poate fi creată sau mutată într-un program, an sau semestru arhivat, iar o grupă activă necesită un context academic activ. Apartenențele studenților se gestionează din secțiunea Membri grupă.",
           activationBlocked: {
             title: "Grupa nu poate fi activată.",
             program: "Programul academic „{name}” este {status}.",
@@ -544,6 +544,7 @@ const ro = {
             invalid: "Verifică studentul și grupa selectată.",
             duplicate: "Studentul are deja o apartenență activă la această grupă.",
             forbidden: "Profilul activ nu poate modifica această universitate.",
+            programAccessDenied: "Profilul activ nu are acces la toate programele academice afectate de această modificare.",
             unavailable: "Modificarea nu a putut fi salvată. Încearcă din nou.",
             studentNotEligible: "Studentul selectat nu aparține acestei universități sau nu este activ.",
             differentProgram: "Studentul este înscris într-un alt program academic.",

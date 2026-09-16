@@ -21,7 +21,7 @@ const membershipMutationSchema = z.discriminatedUnion("intent", [
 export type StudentGroupMembershipActionState = {
   status: "idle" | "success" | "error";
   intent?: "add" | "move" | "end" | "setPrimary";
-  reason?: "invalid" | "duplicate" | "forbidden" | "unavailable"
+  reason?: "invalid" | "duplicate" | "forbidden" | "programAccessDenied" | "unavailable"
     | "studentNotEligible" | "differentProgram" | "groupArchived" | "groupInactive" | "primaryConflict";
 };
 
@@ -58,10 +58,23 @@ const GROUP_INACTIVE_MESSAGES = new Set([
 const PRIMARY_CONFLICT_MESSAGES = new Set([
   "Student already has an active primary membership in another group",
 ]);
+// resolve_academic_program_editor_mode (migration 016) raises this exact
+// message when the actor lacks professor/program_coordinator/university_admin/
+// platform_admin authorization for a specific academic program -- e.g. a
+// cross-program primary change that would also touch a program the actor
+// isn't assigned to. Distinguishing it from the generic university-scope
+// "forbidden" (resolve_academic_units_editor_mode's own, differently worded,
+// 42501) lets the UI point at the real cause instead of implying the
+// university itself is wrong.
+const PROGRAM_ACCESS_DENIED_MESSAGES = new Set([
+  "Academic program editor access denied",
+]);
 
 function mapMembershipError(error: { code?: string; message?: string }): NonNullable<StudentGroupMembershipActionState["reason"]> {
   if (error.code === "23505") return "duplicate";
-  if (error.code === "42501") return "forbidden";
+  if (error.code === "42501") {
+    return PROGRAM_ACCESS_DENIED_MESSAGES.has(error.message ?? "") ? "programAccessDenied" : "forbidden";
+  }
   if (error.code === "22023") {
     const message = error.message ?? "";
     if (STUDENT_NOT_ELIGIBLE_MESSAGES.has(message)) return "studentNotEligible";

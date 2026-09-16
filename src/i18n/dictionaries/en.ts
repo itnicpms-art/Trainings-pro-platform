@@ -490,7 +490,7 @@ const en: Dictionary = {
           statuses: { active: "Active", inactive: "Inactive", archived: "Archived" },
           auditTitle: "Audited changes",
           auditDescription: "Every create, update, or status change is recorded by the secure RPC.",
-          hierarchyStatusNote: "A group cannot be created or moved into an archived program, year, or term, and an active group requires an active academic context. Student assignment to groups remains a future phase.",
+          hierarchyStatusNote: "A group cannot be created or moved into an archived program, year, or term, and an active group requires an active academic context. Student memberships are managed from the Group members section.",
           activationBlocked: {
             title: "The group cannot be activated.",
             program: "Academic program \"{name}\" is {status}.",
@@ -546,6 +546,7 @@ const en: Dictionary = {
             invalid: "Check the selected student and group.",
             duplicate: "The student already has an active membership in this group.",
             forbidden: "The active profile cannot modify this university.",
+            programAccessDenied: "The active profile does not have access to all academic programs affected by this change.",
             unavailable: "The change could not be saved. Try again.",
             studentNotEligible: "The selected student does not belong to this university or is not active.",
             differentProgram: "The student is enrolled in a different academic program.",

@@ -152,6 +152,30 @@ export default async function AcademicStructureManagementPage({ params, searchPa
     />
   ) : null;
 
+  // get_academic_structure_management_overview (migration 006) picks a
+  // single role via LIMIT 1 and, for professor/program_coordinator,
+  // requires an active academic_profile_contexts row whose
+  // academic_program_id matches the selected profile_roles.scope_id --
+  // a single-context model that predates and is independent of TASK
+  // 004.6.1's multi-program profile_roles assignments. A program staff
+  // profile granted purely through grant_academic_program_staff_role has
+  // no such context row, so `overview` is null for them regardless of
+  // how many real program assignments they hold. Program staff rendering
+  // must therefore never depend on `overview` -- it is returned here on
+  // its own, before any of the legacy overview-gated branches below,
+  // so a zero-assignment coordinator gets the intended noPrograms empty
+  // state (not the generic structure-unavailable state) and a
+  // multi-program professor's section renders regardless of the legacy
+  // overview's outcome.
+  if (isProgramStaff) {
+    return (
+      <div className="space-y-4">
+        {programStaffSection}
+        {staffAssignmentsSection}
+      </div>
+    );
+  }
+
   if (!overview && editorOverview?.selected_university) {
     return (
       <StructureOverviewShell eyebrow={t.common.eyebrow} title={t.academic.title} description={t.academic.description} readOnly={t.academic.editor.badge}>
@@ -213,7 +237,6 @@ export default async function AcademicStructureManagementPage({ params, searchPa
         membershipEditorOverview={membershipEditorOverview}
         membershipAction={isUniversityAdmin ? mutateUniversityStudentGroupMembershipAction : undefined}
       />
-      {programStaffSection}
       {staffAssignmentsSection}
     </div>
   );
