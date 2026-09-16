@@ -212,10 +212,12 @@ comment on function public.validate_course_lifecycle() is
 
 revoke all on function public.validate_course_lifecycle() from public, anon, authenticated;
 
--- Validate offering context and current parent state at the moment the
--- offering is created, reassigned, or activated. Existing academic management
--- flows may later change parent statuses; effective read/participation logic
--- must therefore continue to evaluate the current parent state.
+-- Validate offering structure on every write. Planned offerings may be
+-- prepared against inactive parents, but cannot reference an archived course.
+-- Parent statuses become strict when an offering is created or changed as
+-- active. Existing academic management flows may later change parent statuses;
+-- effective read/participation logic must therefore continue to evaluate the
+-- current parent state.
 create or replace function public.validate_course_offering_write()
 returns trigger
 language plpgsql
@@ -264,6 +266,7 @@ begin
       or new.academic_year_id is distinct from old.academic_year_id
       or new.academic_term_id is distinct from old.academic_term_id
       or new.training_period_id is distinct from old.training_period_id
+      or (new.status = 'planned' and old.status is distinct from 'planned')
       or (new.status = 'active' and old.status is distinct from 'active');
   end if;
 
@@ -279,59 +282,62 @@ begin
         using errcode = '23503';
     end if;
 
-    if course_status <> 'active' then
-      raise exception 'Course offering requires an active course'
+    if new.status = 'planned' and course_status = 'archived' then
+      raise exception 'A planned course offering cannot reference an archived course'
         using errcode = '23514';
     end if;
 
-    if new.status = 'active' and course_publication_status <> 'published' then
-      raise exception 'An active course offering requires a published course'
-        using errcode = '23514';
-    end if;
+    if new.status = 'active' then
+      if course_status <> 'active'
+        or course_publication_status <> 'published' then
+        raise exception 'An active course offering requires an active, published course'
+          using errcode = '23514';
+      end if;
 
-    if new.academic_program_id is not null and not exists (
-      select 1
-      from public.academic_programs program
-      where program.id = new.academic_program_id
-        and program.organization_id = new.organization_id
-        and program.status = 'active'
-    ) then
-      raise exception 'Course offering requires an active academic program'
-        using errcode = '23514';
-    end if;
+      if new.academic_program_id is not null and not exists (
+        select 1
+        from public.academic_programs program
+        where program.id = new.academic_program_id
+          and program.organization_id = new.organization_id
+          and program.status = 'active'
+      ) then
+        raise exception 'An active course offering requires an active academic program'
+          using errcode = '23514';
+      end if;
 
-    if new.academic_year_id is not null and not exists (
-      select 1
-      from public.academic_years academic_year
-      where academic_year.id = new.academic_year_id
-        and academic_year.organization_id = new.organization_id
-        and academic_year.status = 'active'
-    ) then
-      raise exception 'Course offering requires an active academic year'
-        using errcode = '23514';
-    end if;
+      if new.academic_year_id is not null and not exists (
+        select 1
+        from public.academic_years academic_year
+        where academic_year.id = new.academic_year_id
+          and academic_year.organization_id = new.organization_id
+          and academic_year.status = 'active'
+      ) then
+        raise exception 'An active course offering requires an active academic year'
+          using errcode = '23514';
+      end if;
 
-    if new.academic_term_id is not null and not exists (
-      select 1
-      from public.academic_terms academic_term
-      where academic_term.id = new.academic_term_id
-        and academic_term.organization_id = new.organization_id
-        and academic_term.academic_year_id = new.academic_year_id
-        and academic_term.status = 'active'
-    ) then
-      raise exception 'Course offering requires an active academic term in the selected year'
-        using errcode = '23514';
-    end if;
+      if new.academic_term_id is not null and not exists (
+        select 1
+        from public.academic_terms academic_term
+        where academic_term.id = new.academic_term_id
+          and academic_term.organization_id = new.organization_id
+          and academic_term.academic_year_id = new.academic_year_id
+          and academic_term.status = 'active'
+      ) then
+        raise exception 'An active course offering requires an active academic term in the selected year'
+          using errcode = '23514';
+      end if;
 
-    if new.training_period_id is not null and not exists (
-      select 1
-      from public.organization_training_periods training_period
-      where training_period.id = new.training_period_id
-        and training_period.organization_id = new.organization_id
-        and training_period.status = 'active'
-    ) then
-      raise exception 'Course offering requires an active training period'
-        using errcode = '23514';
+      if new.training_period_id is not null and not exists (
+        select 1
+        from public.organization_training_periods training_period
+        where training_period.id = new.training_period_id
+          and training_period.organization_id = new.organization_id
+          and training_period.status = 'active'
+      ) then
+        raise exception 'An active course offering requires an active training period'
+          using errcode = '23514';
+      end if;
     end if;
   end if;
 
@@ -340,7 +346,7 @@ end;
 $$;
 
 comment on function public.validate_course_offering_write() is
-  'Internal write-time validator for offering organization context and current parent states. It does not create a perpetual invariant when existing academic parents change later.';
+  'Internal write-time validator for offering structure, planned-course archival, and active parent states. It does not create a perpetual invariant when existing academic parents change later.';
 
 revoke all on function public.validate_course_offering_write() from public, anon, authenticated;
 
