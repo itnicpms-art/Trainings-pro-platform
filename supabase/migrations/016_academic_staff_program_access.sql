@@ -453,11 +453,18 @@ begin
   actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, program_organization_id);
 
   -- Re-select with a row lock now that the actor is authorized, and
-  -- revalidate the row still exists -- nothing ever UPDATEs profile_roles
-  -- (only INSERT via grant, DELETE via revoke), so this only guards against
-  -- a concurrent revoke of the exact same row, not a changed-field race.
-  -- Never a bulk delete: this locks and removes exactly one profile_roles
-  -- row, identified by its own id.
+  -- revalidate every field the pre-lock authorization depended on:
+  -- scope_type = 'program' is repeated in this WHERE clause explicitly;
+  -- scope_id (the authorized academic program) and role_id (professor/
+  -- program_coordinator) need no separate re-check because nothing ever
+  -- UPDATEs a profile_roles row (only INSERT via grant, DELETE via
+  -- revoke) -- so as long as the row with this exact id still exists at
+  -- all, its scope_id and role_id are provably identical to what was
+  -- already validated above. The only thing that can actually change
+  -- concurrently is existence itself (a concurrent revoke of this exact
+  -- row), which the null check just below catches. Never a bulk delete:
+  -- this locks and removes exactly one profile_roles row, identified by
+  -- its own id.
   select profile_role.*
   into existing_assignment
   from public.profile_roles profile_role
@@ -992,6 +999,7 @@ set search_path = public
 as $$
 declare
   actor_mode text;
+  authorized_source_program_id uuid;
   normalized_code text := upper(btrim(code));
   normalized_name text := btrim(name);
   normalized_description text := nullif(btrim(description), '');
@@ -1022,7 +1030,14 @@ begin
     raise exception 'Academic group not found' using errcode = '22023';
   end if;
 
-  actor_mode := public.resolve_academic_program_editor_mode(requested_profile_id, existing_group.academic_program_id);
+  -- academic_program_id is NOT immutable on this table (this very function
+  -- can move a group to a different program), so the value authorization
+  -- was actually granted against is captured here, from this non-locking
+  -- read, and re-verified against the fresh, locked value further below --
+  -- otherwise a concurrent move of this exact group by another actor
+  -- between this read and the later lock would go undetected.
+  authorized_source_program_id := existing_group.academic_program_id;
+  actor_mode := public.resolve_academic_program_editor_mode(requested_profile_id, authorized_source_program_id);
 
   if target_academic_term_id is not null and target_academic_year_id is null then
     raise exception 'Academic term requires an academic year' using errcode = '22023';
@@ -1097,6 +1112,17 @@ begin
   for update;
 
   if existing_group.id is null then
+    raise exception 'Academic group changed during update' using errcode = '40001';
+  end if;
+
+  -- Re-verify the group is still in the exact program authorization was
+  -- granted against: if a concurrent update_academic_group call already
+  -- moved this group to a different program between the non-locking read
+  -- above and this lock, the authorization already performed is stale and
+  -- must not be trusted -- abort and let the caller retry against current
+  -- data rather than silently mutating a group that, right now, belongs to
+  -- a program never actually authorized in this call.
+  if existing_group.academic_program_id is distinct from authorized_source_program_id then
     raise exception 'Academic group changed during update' using errcode = '40001';
   end if;
 
@@ -1286,13 +1312,20 @@ begin
     raise exception 'Academic program is not active for staff mutation' using errcode = '22023';
   end if;
 
-  -- Re-select with a row lock now that the actor is authorized, and
-  -- revalidate academic_program_id specifically against what was just
-  -- authorized: unlike every other id this function checks,
-  -- academic_groups.academic_program_id is NOT immutable --
+  -- Re-select with a row lock now that the actor is authorized. The WHERE
+  -- clause below is byte-identical to the unlocked lookup above (same
+  -- target_group_id AND organization_id = target_university_id), so a
+  -- group whose organization_id no longer matched target_university_id
+  -- would already fail to be found here (group_status is null, below) --
+  -- academic_groups.organization_id is never updated by any RPC, so this
+  -- cannot fire in practice, but the check is real, not assumed.
+  -- academic_program_id gets its own explicit revalidation just below
+  -- because, unlike organization_id, it is NOT immutable on this table --
   -- update_academic_group can move a group to a different program between
   -- the unlocked lookup above and this lock, and a mutation must never
   -- proceed using authorization for a program the group is no longer in.
+  -- status/academic_year_id/academic_term_id are read fresh in this same
+  -- locked statement, so nothing below ever reuses a pre-lock value.
   select group_item.status, group_item.academic_program_id, group_item.academic_year_id, group_item.academic_term_id
   into group_status, group_program_id, group_year_id, group_term_id
   from public.academic_groups group_item
@@ -1430,6 +1463,7 @@ set search_path = public
 as $$
 declare
   actor_mode text;
+  authorized_program_id uuid;
   existing_membership public.academic_profile_contexts%rowtype;
   ended_row public.academic_profile_contexts%rowtype;
   new_row public.academic_profile_contexts%rowtype;
@@ -1451,7 +1485,8 @@ begin
     raise exception 'Group membership not found' using errcode = '22023';
   end if;
 
-  actor_mode := public.resolve_academic_program_editor_mode(requested_profile_id, existing_membership.academic_program_id);
+  authorized_program_id := existing_membership.academic_program_id;
+  actor_mode := public.resolve_academic_program_editor_mode(requested_profile_id, authorized_program_id);
 
   -- The target group is required (by the existing program-match check
   -- below) to be in the same program as the source membership, so
@@ -1459,7 +1494,7 @@ begin
   -- target-program check is needed, unlike update_academic_group.
   if actor_mode in ('professor', 'program_coordinator') and not exists (
     select 1 from public.academic_programs program
-    where program.id = existing_membership.academic_program_id and program.status = 'active'
+    where program.id = authorized_program_id and program.status = 'active'
   ) then
     raise exception 'Academic program is not active for staff mutation' using errcode = '22023';
   end if;
@@ -1471,6 +1506,17 @@ begin
   for update;
 
   if existing_membership.id is null then
+    raise exception 'Group membership changed during update' using errcode = '40001';
+  end if;
+
+  -- academic_profile_contexts.academic_program_id is never reassigned to a
+  -- genuinely different value by any RPC in this file once a row exists
+  -- (add_student_to_group's only write to it is itself guarded to always
+  -- reaffirm the same program id) -- but the authorized value is still
+  -- re-checked here defensively, exactly like academic_groups.academic_program_id
+  -- in add_student_to_group/update_academic_group, so authorization is
+  -- never silently trusted against a stale read if that ever changes.
+  if existing_membership.academic_program_id is distinct from authorized_program_id then
     raise exception 'Group membership changed during update' using errcode = '40001';
   end if;
 
@@ -1624,8 +1670,11 @@ set search_path = public
 as $$
 declare
   actor_mode text;
+  authorized_program_id uuid;
   target_membership public.academic_profile_contexts%rowtype;
   other_primary public.academic_profile_contexts%rowtype;
+  other_primary_id uuid;
+  other_primary_program_id uuid;
   demoted_row public.academic_profile_contexts%rowtype;
   promoted_row public.academic_profile_contexts%rowtype;
 begin
@@ -1642,11 +1691,12 @@ begin
     raise exception 'Group membership not found' using errcode = '22023';
   end if;
 
-  actor_mode := public.resolve_academic_program_editor_mode(requested_profile_id, target_membership.academic_program_id);
+  authorized_program_id := target_membership.academic_program_id;
+  actor_mode := public.resolve_academic_program_editor_mode(requested_profile_id, authorized_program_id);
 
   if actor_mode in ('professor', 'program_coordinator') and not exists (
     select 1 from public.academic_programs program
-    where program.id = target_membership.academic_program_id and program.status = 'active'
+    where program.id = authorized_program_id and program.status = 'active'
   ) then
     raise exception 'Academic program is not active for staff mutation' using errcode = '22023';
   end if;
@@ -1661,35 +1711,73 @@ begin
     raise exception 'Only an active membership can become primary' using errcode = '22023';
   end if;
 
+  -- academic_profile_contexts.academic_program_id is never reassigned to a
+  -- genuinely different value once a row exists (see add_student_to_group's
+  -- guarded write) -- re-checked here defensively anyway, exactly like
+  -- academic_groups.academic_program_id elsewhere in this file, so
+  -- authorization is never silently trusted against a stale read.
+  if target_membership.academic_program_id is distinct from authorized_program_id then
+    raise exception 'Group membership changed during update' using errcode = '40001';
+  end if;
+
   if target_membership.is_primary then
     return to_jsonb(target_membership);
   end if;
 
-  -- The one-primary-per-profile rule is global (academic_profile_contexts_one_primary_per_profile_idx
-  -- has no organization_id in its key), so the search below intentionally
-  -- matches that same scope rather than filtering by university.
-  select context.*
-  into other_primary
+  -- Non-locking lookup only, to identify which row (if any) is the
+  -- student's other active primary membership and which program it
+  -- belongs to -- no FOR UPDATE lock is acquired on it yet, because that
+  -- row may belong to a program this actor has no authority over at all,
+  -- and the cross-program authorization check just below must run before
+  -- any lock is taken on a resource outside the actor's own scope. The
+  -- one-primary-per-profile rule is global
+  -- (academic_profile_contexts_one_primary_per_profile_idx has no
+  -- organization_id in its key), so this search intentionally matches
+  -- that same scope rather than filtering by university.
+  select context.id, context.academic_program_id
+  into other_primary_id, other_primary_program_id
   from public.academic_profile_contexts context
   where context.profile_id = target_membership.profile_id
     and context.is_primary
     and context.status = 'active'
-    and context.id <> target_membership.id
-  for update;
+    and context.id <> target_membership.id;
 
   -- CRITICAL: promoting a membership in one program must not silently
   -- demote a primary membership that sits in a DIFFERENT program the
   -- staff actor has no authority over. The whole operation is denied here
-  -- (by letting this raise propagate before either UPDATE below runs)
-  -- rather than silently skipping the demotion, which would violate the
-  -- global one-primary invariant, or allowing it unchecked, which would be
-  -- a privilege escalation. University Admin/Platform Admin keep their
-  -- existing unconditional behavior; this only runs for the staff path.
-  if other_primary.id is not null
+  -- (by letting this raise propagate before any lock on the other row, or
+  -- either UPDATE below, runs) rather than silently skipping the
+  -- demotion, which would violate the global one-primary invariant, or
+  -- allowing it unchecked, which would be a privilege escalation.
+  -- University Admin/Platform Admin keep their existing unconditional
+  -- behavior; this only runs for the staff path.
+  if other_primary_id is not null
     and actor_mode in ('professor', 'program_coordinator')
-    and other_primary.academic_program_id is distinct from target_membership.academic_program_id
+    and other_primary_program_id is distinct from authorized_program_id
   then
-    perform public.resolve_academic_program_editor_mode(requested_profile_id, other_primary.academic_program_id);
+    perform public.resolve_academic_program_editor_mode(requested_profile_id, other_primary_program_id);
+  end if;
+
+  if other_primary_id is not null then
+    -- Re-select with a row lock now that the actor is authorized (or,
+    -- for University Admin/Platform Admin, was never gated on this row
+    -- at all) for whichever program it turned out to belong to.
+    -- is_primary/status on this row are genuinely mutable concurrently
+    -- (e.g. a concurrent end/set-primary call against this exact row),
+    -- unlike academic_program_id -- so the WHERE clause below re-checks
+    -- the row still matches every original condition, and other_primary.id
+    -- naturally comes back null if it no longer does, which the
+    -- subsequent "if other_primary.id is not null" gate already handles
+    -- as "nothing left to demote," exactly like the single-step lock this
+    -- replaces.
+    select context.*
+    into other_primary
+    from public.academic_profile_contexts context
+    where context.id = other_primary_id
+      and context.profile_id = target_membership.profile_id
+      and context.is_primary
+      and context.status = 'active'
+    for update;
   end if;
 
   if other_primary.id is not null then
