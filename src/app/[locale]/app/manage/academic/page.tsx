@@ -43,16 +43,32 @@ export default async function AcademicStructureManagementPage({ params, searchPa
   if (!context.activeProfile || !context.variant) return null;
   if (context.variant === "platformAdmin" && context.canAccessPlatformAdmin) redirect(`/${locale}/admin`);
 
+  // TASK 004.6.1: profiles.university_id is checked last, after the
+  // existing academicContext/university_admin-role fallbacks, so this only
+  // ever activates for a professor/program_coordinator whose own context
+  // resolution doesn't already resolve a university -- e.g. one with zero
+  // remaining program assignments, per canAccessAcademicStructureManagement's
+  // own profile_type fallback below.
   const scopedUniversityId = context.academicContext?.university_id
-    ?? context.roles.find((role) => role.code === "university_admin" && role.scopeType === "university")?.scopeId;
-  const allowed = canAccessAcademicStructureManagement(context.roleCodes, scopedUniversityId);
+    ?? context.roles.find((role) => role.code === "university_admin" && role.scopeType === "university")?.scopeId
+    ?? context.activeProfile.university_id;
+  const allowed = canAccessAcademicStructureManagement(context.roleCodes, scopedUniversityId, context.activeProfile.profile_type);
   if (!allowed) return <StructureRestricted locale={locale} translations={t.common} />;
 
   const isUniversityAdmin = context.roleCodes.has("university_admin");
   // PROGRAM ASSIGNMENT CONTROLS AUTHORIZATION for this branch, not
   // university/faculty membership -- see resolve_academic_program_editor_mode
   // (migration 016) and docs/tasks/TASK-004-6-1-academic-staff-program-access.md.
-  const isProgramStaff = context.roleCodes.has("professor") || context.roleCodes.has("program_coordinator");
+  // The profile_type fallback (mirroring canAccessAcademicStructureManagement's
+  // own) is what routes a professor/program_coordinator with ZERO remaining
+  // program assignments into this section at all, so they see the actual
+  // "no assigned programs" empty state below instead of silently falling
+  // through to neither branch -- it grants no data by itself:
+  // getAssignedAcademicPrograms still independently returns an empty array
+  // for such a profile regardless of profile_type.
+  const isStaffProfileType = context.activeProfile.profile_type === "professor" || context.activeProfile.profile_type === "coordinator";
+  const isProgramStaff = context.roleCodes.has("professor") || context.roleCodes.has("program_coordinator")
+    || (Boolean(scopedUniversityId) && isStaffProfileType);
 
   const [
     overview, editorOverview, programsEditorOverview, calendarEditorOverview, groupsEditorOverview, membershipEditorOverview,

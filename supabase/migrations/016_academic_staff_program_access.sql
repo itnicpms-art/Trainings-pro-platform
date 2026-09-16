@@ -257,8 +257,8 @@ set search_path = public
 as $$
 declare
   actor_mode text;
+  authorized_organization_id uuid;
   program_organization_id uuid;
-  program_status text;
   target_role_id uuid;
   target_profile_status text;
   target_profile_university_id uuid;
@@ -274,17 +274,37 @@ begin
     raise exception 'Invalid academic staff role' using errcode = '22023';
   end if;
 
-  select program.organization_id, program.status
-  into program_organization_id, program_status
+  -- Non-locking lookup to resolve the program's university for
+  -- authorization purposes only -- no FOR UPDATE lock is acquired on the
+  -- program row before the actor is known to be authorized for it, so an
+  -- unauthorized caller can never force an avoidable lock on a program
+  -- outside their own scope.
+  select program.organization_id
+  into authorized_organization_id
+  from public.academic_programs program
+  where program.id = target_academic_program_id;
+
+  if authorized_organization_id is null then
+    raise exception 'Valid academic program required' using errcode = '22023';
+  end if;
+
+  actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, authorized_organization_id);
+
+  -- Re-select with a row lock now that the actor is authorized, and
+  -- revalidate organization_id specifically against what was just
+  -- authorized (no existing RPC updates academic_programs.organization_id
+  -- today, so this cannot fire in practice, but the actor's authorization
+  -- must never be trusted against stale, pre-lock data if that ever
+  -- changes).
+  select program.organization_id
+  into program_organization_id
   from public.academic_programs program
   where program.id = target_academic_program_id
   for update;
 
-  if program_organization_id is null then
-    raise exception 'Valid academic program required' using errcode = '22023';
+  if program_organization_id is distinct from authorized_organization_id then
+    raise exception 'Academic program changed during update' using errcode = '40001';
   end if;
-
-  actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, program_organization_id);
 
   select profile.status, profile.university_id, profile.profile_type
   into target_profile_status, target_profile_university_id, target_profile_type
@@ -396,14 +416,16 @@ begin
     raise exception 'Active profile ownership required' using errcode = '42501';
   end if;
 
-  -- Never a bulk delete: this locks and removes exactly one profile_roles
-  -- row, identified by its own id.
+  -- Non-locking lookup to resolve the assignment's program/university for
+  -- authorization purposes only -- no FOR UPDATE lock is acquired before
+  -- the actor is known to be authorized for it, so an unauthorized caller
+  -- can never force an avoidable lock on an assignment outside their own
+  -- scope by passing an arbitrary assignment_id.
   select profile_role.*
   into existing_assignment
   from public.profile_roles profile_role
   where profile_role.id = assignment_id
-    and profile_role.scope_type = 'program'
-  for update;
+    and profile_role.scope_type = 'program';
 
   if existing_assignment.id is null then
     raise exception 'Academic program staff assignment not found' using errcode = '22023';
@@ -429,6 +451,23 @@ begin
   end if;
 
   actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, program_organization_id);
+
+  -- Re-select with a row lock now that the actor is authorized, and
+  -- revalidate the row still exists -- nothing ever UPDATEs profile_roles
+  -- (only INSERT via grant, DELETE via revoke), so this only guards against
+  -- a concurrent revoke of the exact same row, not a changed-field race.
+  -- Never a bulk delete: this locks and removes exactly one profile_roles
+  -- row, identified by its own id.
+  select profile_role.*
+  into existing_assignment
+  from public.profile_roles profile_role
+  where profile_role.id = assignment_id
+    and profile_role.scope_type = 'program'
+  for update;
+
+  if existing_assignment.id is null then
+    raise exception 'Academic program staff assignment not found' using errcode = '22023';
+  end if;
 
   delete from public.profile_roles
   where id = existing_assignment.id;
@@ -1211,6 +1250,7 @@ set search_path = public
 as $$
 declare
   actor_mode text;
+  authorized_program_id uuid;
   group_status text;
   group_program_id uuid;
   group_year_id uuid;
@@ -1224,13 +1264,35 @@ declare
   result_row public.academic_profile_contexts%rowtype;
   audit_action text;
 begin
-  -- The group lookup moves ahead of authorization here (unlike the
-  -- original, where resolve_academic_units_editor_mode ran first using
-  -- target_university_id directly) because program-scoped authorization
-  -- needs the group's own academic_program_id, which is only known after
-  -- this lookup. If the group does not resolve, group_program_id stays
-  -- null and the new resolver raises its own generic access-denied rather
-  -- than leaking group existence ahead of authorization.
+  -- Non-locking lookup to resolve the group's program for authorization
+  -- purposes only -- no FOR UPDATE lock is acquired before the actor is
+  -- known to be authorized, so an unauthorized caller can never force an
+  -- avoidable lock on a group outside their own scope. If the group does
+  -- not resolve, authorized_program_id stays null and the new resolver
+  -- raises its own generic access-denied rather than leaking group
+  -- existence ahead of authorization.
+  select group_item.academic_program_id
+  into authorized_program_id
+  from public.academic_groups group_item
+  where group_item.id = target_group_id
+    and group_item.organization_id = target_university_id;
+
+  actor_mode := public.resolve_academic_program_editor_mode(requested_profile_id, authorized_program_id);
+
+  if actor_mode in ('professor', 'program_coordinator') and not exists (
+    select 1 from public.academic_programs program
+    where program.id = authorized_program_id and program.status = 'active'
+  ) then
+    raise exception 'Academic program is not active for staff mutation' using errcode = '22023';
+  end if;
+
+  -- Re-select with a row lock now that the actor is authorized, and
+  -- revalidate academic_program_id specifically against what was just
+  -- authorized: unlike every other id this function checks,
+  -- academic_groups.academic_program_id is NOT immutable --
+  -- update_academic_group can move a group to a different program between
+  -- the unlocked lookup above and this lock, and a mutation must never
+  -- proceed using authorization for a program the group is no longer in.
   select group_item.status, group_item.academic_program_id, group_item.academic_year_id, group_item.academic_term_id
   into group_status, group_program_id, group_year_id, group_term_id
   from public.academic_groups group_item
@@ -1238,10 +1300,12 @@ begin
     and group_item.organization_id = target_university_id
   for update;
 
-  actor_mode := public.resolve_academic_program_editor_mode(requested_profile_id, group_program_id);
-
   if group_status is null then
     raise exception 'Academic group not found in this university' using errcode = '22023';
+  end if;
+
+  if group_program_id is distinct from authorized_program_id then
+    raise exception 'Academic group changed during update' using errcode = '40001';
   end if;
 
   if group_status = 'archived' then
@@ -1250,13 +1314,6 @@ begin
 
   if group_status <> 'active' then
     raise exception 'Cannot add a student to an inactive academic group' using errcode = '22023';
-  end if;
-
-  if actor_mode in ('professor', 'program_coordinator') and not exists (
-    select 1 from public.academic_programs program
-    where program.id = group_program_id and program.status = 'active'
-  ) then
-    raise exception 'Academic program is not active for staff mutation' using errcode = '22023';
   end if;
 
   select student.status, student.university_id, student.profile_type

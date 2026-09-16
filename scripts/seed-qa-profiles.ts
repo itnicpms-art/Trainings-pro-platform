@@ -596,13 +596,17 @@ async function normalizeProfileRole(
   if (error) throwDatabaseError(`Unable to assign role for ${profile.label}`, error);
 }
 
-// TASK 004.6.1: adds one extra profile_roles(scope_type='program') row
-// without touching any other row for this profile -- unlike
-// normalizeProfileRole (which deletes every existing row first, correct for
-// a profile's single primary role, but wrong here since it would wipe the
-// assignment normalizeProfileRole itself just created). Check-then-insert
-// keeps this idempotent across repeated seed runs.
-async function ensureAdditionalProgramStaffAssignment(
+// TASK 004.6.1: professor/program_coordinator are expected to hold multiple
+// simultaneous program-scoped profile_roles rows, so neither their primary
+// nor any additional assignment may ever go through normalizeProfileRole
+// (which deletes EVERY existing role row for the profile first -- correct
+// for every other role in this seed, which only ever holds a single
+// assignment, but would wipe a sibling program assignment here). This is a
+// pure check-then-insert against the exact (profile, role, program) tuple,
+// touching no other row for this profile -- genuinely idempotent: a second
+// call with the same arguments finds the existing row and does nothing, so
+// the row's own id never churns across repeated seed runs.
+async function ensureProgramStaffAssignment(
   client: Client,
   profile: Profile,
   role: Role,
@@ -615,7 +619,7 @@ async function ensureAdditionalProgramStaffAssignment(
     .eq("role_id", role.id)
     .eq("scope_type", "program")
     .eq("scope_id", academicProgramId);
-  if (lookupError) throwDatabaseError(`Unable to check additional program assignment for ${profile.label}`, lookupError);
+  if (lookupError) throwDatabaseError(`Unable to check program assignment for ${profile.label}`, lookupError);
   if (existing.length > 0) return;
 
   const { error } = await client.from("profile_roles").insert({
@@ -624,7 +628,25 @@ async function ensureAdditionalProgramStaffAssignment(
     scope_type: "program",
     scope_id: academicProgramId,
   });
-  if (error) throwDatabaseError(`Unable to add additional program assignment for ${profile.label}`, error);
+  if (error) throwDatabaseError(`Unable to add program assignment for ${profile.label}`, error);
+}
+
+// TASK 004.6.1: removes only the exact legacy row shape a pre-fix seed run
+// could have left behind (scope_type='program' with scope_id IS NULL, from
+// scopeIdFor previously always returning null for program-scoped roles).
+// Scoped to profile_id AND role_id AND scope_type='program' AND scope_id IS
+// NULL specifically -- this can never match, and therefore can never
+// delete, a real assignment that already has a program id, or any
+// unrelated role/scope row for this profile.
+async function removeMalformedProgramStaffAssignment(client: Client, profile: Profile, role: Role): Promise<void> {
+  const { error } = await client
+    .from("profile_roles")
+    .delete()
+    .eq("profile_id", profile.id)
+    .eq("role_id", role.id)
+    .eq("scope_type", "program")
+    .is("scope_id", null);
+  if (error) throwDatabaseError(`Unable to remove the legacy null-scope program assignment for ${profile.label}`, error);
 }
 
 function organizationFor(
@@ -637,22 +659,13 @@ function organizationFor(
   return null;
 }
 
-function scopeIdFor(
-  definition: ProfileDefinition,
-  organization: Organization | null,
-  academicStructure: QaAcademicStructure,
-): string | null {
+// Unchanged from before TASK 004.6.1: professor/program_coordinator no
+// longer reach this function at all (see main()'s per-role branch below),
+// so its remaining callers are exactly the roles that were always correctly
+// null-scoped for 'program' (university_student, whose own placement is
+// tracked via academic_profile_contexts instead) or scoped by organization.
+function scopeIdFor(definition: ProfileDefinition, organization: Organization | null): string | null {
   if (definition.scopeType === "organization" || definition.scopeType === "university") return organization?.id ?? null;
-  // TASK 004.6.1: professor/program_coordinator authorization is driven by
-  // profile_roles(scope_type='program', scope_id=<academic_program_id>) --
-  // previously this always resolved to null for every 'program'-scoped role
-  // (including university_student, whose own placement is tracked via
-  // academic_profile_contexts instead and must keep resolving to null here).
-  // Only professor/program_coordinator get a real program id, since those
-  // are the two roles TASK 004.6.1 actually authorizes against.
-  if (definition.scopeType === "program" && (definition.roleCode === "professor" || definition.roleCode === "program_coordinator")) {
-    return academicStructure.program.id;
-  }
   return null;
 }
 
@@ -707,25 +720,36 @@ async function main(): Promise<void> {
       const role = roles.get(definition.roleCode);
       if (!role) throw new Error(`Required role is unavailable: ${definition.roleCode}`);
       await normalizeMembership(client, result.profile, organization);
-      await normalizeProfileRole(client, result.profile, role, definition.scopeType, scopeIdFor(definition, organization, academicStructure));
+      if (definition.roleCode === "professor" || definition.roleCode === "program_coordinator") {
+        // TASK 004.6.1: never routed through normalizeProfileRole's blanket
+        // delete-then-insert-one -- see ensureProgramStaffAssignment's own
+        // comment for why. First reclaims any pre-fix malformed row (real
+        // rows, once inserted, never match scope_id IS NULL and so are
+        // never touched by this), then ensures this profile's primary
+        // program assignment exists without deleting anything else.
+        await removeMalformedProgramStaffAssignment(client, result.profile, role);
+        await ensureProgramStaffAssignment(client, result.profile, role, academicStructure.program.id);
+      } else {
+        await normalizeProfileRole(client, result.profile, role, definition.scopeType, scopeIdFor(definition, organization));
+      }
       profilesByKey.set(definition.key, result.profile);
       results.push({ key: definition.key, created: result.created });
     }
 
     // TASK 004.6.1: give the QA professor a second, simultaneous program
-    // assignment (Dentistry) on top of the one normalizeProfileRole already
-    // gave it above (General Medicine) -- covers the "multiple assigned
-    // programs, across different faculties" QA case. The QA coordinator
-    // keeps its single General Medicine assignment from the loop above,
-    // covering the "one assigned program" case and, since it has no
-    // Dentistry assignment, the cross-program-denial case against
-    // secondProgram/secondAcademicGroup. The "no assigned programs" case
-    // needs no extra fixture: any other QA profile (e.g. QA Academic
-    // Student) already holds zero professor/program_coordinator rows.
+    // assignment (Dentistry) on top of the one ensured above (General
+    // Medicine) -- covers the "multiple assigned programs, across different
+    // faculties" QA case. The QA coordinator keeps its single General
+    // Medicine assignment from the loop above, covering the "one assigned
+    // program" case and, since it has no Dentistry assignment, the
+    // cross-program-denial case against secondProgram/secondAcademicGroup.
+    // The "no assigned programs" case needs no extra fixture: any other QA
+    // profile (e.g. QA Academic Student) already holds zero
+    // professor/program_coordinator rows.
     const professorProfile = profilesByKey.get("professor");
     const professorRole = roles.get("professor");
     if (!professorProfile || !professorRole) throw new Error("Required QA profile is unavailable: professor");
-    await ensureAdditionalProgramStaffAssignment(client, professorProfile, professorRole, academicStructure.secondProgram.id);
+    await ensureProgramStaffAssignment(client, professorProfile, professorRole, academicStructure.secondProgram.id);
 
     const trainingPeriod = await ensureTrainingPeriod(client, trainingOrganization);
     const academicContextDefinitions: Array<{ key: string; includeGroup: boolean }> = [

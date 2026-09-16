@@ -25,9 +25,16 @@ export default async function AppLayout({ children, params }: { children: ReactN
   const activeStatus = dictionary.app.profiles.statuses[activeProfile.status] ?? dictionary.shell.active;
 
   const dashboardVariant = dashboardContext.variant ?? "individualLearner";
+  // TASK 004.6.1: profiles.university_id is checked last, after the
+  // existing academicContext/university_admin-role fallbacks, so this only
+  // ever activates for a professor/program_coordinator whose own context
+  // resolution doesn't already resolve a university -- e.g. one with zero
+  // remaining program assignments, per canAccessAcademicStructureManagement's
+  // own profile_type fallback.
   const scopedUniversityId = dashboardContext.academicContext?.university_id
-    ?? dashboardContext.roles.find((role) => role.code === "university_admin" && role.scopeType === "university")?.scopeId;
-  const canAccessAcademicManagement = canAccessAcademicStructureManagement(dashboardContext.roleCodes, scopedUniversityId);
+    ?? dashboardContext.roles.find((role) => role.code === "university_admin" && role.scopeType === "university")?.scopeId
+    ?? activeProfile.university_id;
+  const canAccessAcademicManagement = canAccessAcademicStructureManagement(dashboardContext.roleCodes, scopedUniversityId, activeProfile.profile_type);
   const canAccessOrganizationManagement = canAccessOrganizationStructureManagement(dashboardContext.roleCodes, activeProfile.organization_id);
   const profileOptions = profiles.filter((profile) => profile.status === "active").map((profile) => ({
     id: profile.id,
