@@ -411,6 +411,9 @@ declare
   existing_assignment public.profile_roles%rowtype;
   assignment_role_code text;
   program_organization_id uuid;
+  authorized_assignment_id uuid;
+  authorized_scope_id uuid;
+  authorized_role_id uuid;
 begin
   if auth.uid() is null then
     raise exception 'Active profile ownership required' using errcode = '42501';
@@ -452,19 +455,24 @@ begin
 
   actor_mode := public.resolve_academic_units_editor_mode(requested_profile_id, program_organization_id);
 
-  -- Re-select with a row lock now that the actor is authorized, and
-  -- revalidate every field the pre-lock authorization depended on:
-  -- scope_type = 'program' is repeated in this WHERE clause explicitly;
-  -- scope_id (the authorized academic program) and role_id (professor/
-  -- program_coordinator) need no separate re-check because nothing ever
-  -- UPDATEs a profile_roles row (only INSERT via grant, DELETE via
-  -- revoke) -- so as long as the row with this exact id still exists at
-  -- all, its scope_id and role_id are provably identical to what was
-  -- already validated above. The only thing that can actually change
-  -- concurrently is existence itself (a concurrent revoke of this exact
-  -- row), which the null check just below catches. Never a bulk delete:
-  -- this locks and removes exactly one profile_roles row, identified by
-  -- its own id.
+  -- Explicit security invariant, captured as values rather than left
+  -- implicit in a comment: exactly what the pre-lock authorization above
+  -- was actually granted against.
+  authorized_assignment_id := existing_assignment.id;
+  authorized_scope_id := existing_assignment.scope_id;
+  authorized_role_id := existing_assignment.role_id;
+
+  -- Re-select with a row lock now that the actor is authorized. The WHERE
+  -- clause already repeats scope_type = 'program'; the check below then
+  -- explicitly re-verifies every one of the four authorized values in code
+  -- (not merely inferred from "nothing ever changes this table") against
+  -- the fresh, locked row: same assignment id, scope_type still 'program',
+  -- same scope_id (authorized academic program), same role_id (authorized
+  -- professor/program_coordinator role). If any of it no longer matches --
+  -- most plausibly a concurrent revoke of this exact row -- the operation
+  -- aborts rather than deleting or auditing against a stale read. Never a
+  -- bulk delete: this locks and removes exactly one profile_roles row,
+  -- identified by its own id.
   select profile_role.*
   into existing_assignment
   from public.profile_roles profile_role
@@ -472,7 +480,12 @@ begin
     and profile_role.scope_type = 'program'
   for update;
 
-  if existing_assignment.id is null then
+  if existing_assignment.id is null
+    or existing_assignment.id is distinct from authorized_assignment_id
+    or existing_assignment.scope_type is distinct from 'program'
+    or existing_assignment.scope_id is distinct from authorized_scope_id
+    or existing_assignment.role_id is distinct from authorized_role_id
+  then
     raise exception 'Academic program staff assignment not found' using errcode = '22023';
   end if;
 
@@ -1528,6 +1541,37 @@ begin
     raise exception 'Student is already a member of this group' using errcode = '22023';
   end if;
 
+  -- Non-locking lookup of the target group, scoped to the same university.
+  -- Both existence and the same-program business rule are decided from
+  -- this single unlocked read, before any lock is even considered -- so an
+  -- actor authorized only for one program can never acquire even a
+  -- momentary FOR UPDATE lock on a group that belongs to a different
+  -- program by simply supplying its id; the function fails here instead,
+  -- before touching that row at all. group_status (not academic_program_id)
+  -- is the existence signal, matching the established pattern elsewhere in
+  -- this file, since a real row's academic_program_id is never null but
+  -- treating it as the null-check target would be a fragile assumption.
+  select group_item.status, group_item.academic_program_id
+  into group_status, group_program_id
+  from public.academic_groups group_item
+  where group_item.id = target_group_id
+    and group_item.organization_id = existing_membership.organization_id;
+
+  if group_status is null then
+    raise exception 'Academic group not found in this university' using errcode = '22023';
+  end if;
+
+  if group_program_id <> existing_membership.academic_program_id then
+    raise exception 'Cannot move a student to a group in a different academic program' using errcode = '22023';
+  end if;
+
+  -- Only now, with the target group already confirmed (unlocked, above) to
+  -- exist in the authorized program, is a lock acquired on it. Every field
+  -- is re-read fresh in this same locked statement -- status/year/term are
+  -- always fresh by construction, and academic_program_id is explicitly
+  -- re-verified just below since, unlike organization_id, it is not
+  -- immutable on this table (this very function reassigns it on the OLD
+  -- row, and update_academic_group can reassign it on any group).
   select group_item.status, group_item.academic_program_id, group_item.academic_year_id, group_item.academic_term_id
   into group_status, group_program_id, group_year_id, group_term_id
   from public.academic_groups group_item
@@ -1539,16 +1583,21 @@ begin
     raise exception 'Academic group not found in this university' using errcode = '22023';
   end if;
 
+  -- If a concurrent update_academic_group call moved this exact group to a
+  -- different program between the unlocked lookup above and this lock, the
+  -- authorization already established is stale -- abort and require a
+  -- retry against current data rather than silently moving the student
+  -- into a group that, right now, sits in an unauthorized program.
+  if group_program_id is distinct from existing_membership.academic_program_id then
+    raise exception 'Academic group changed during update' using errcode = '40001';
+  end if;
+
   if group_status = 'archived' then
     raise exception 'Cannot move a student into an archived academic group' using errcode = '22023';
   end if;
 
   if group_status <> 'active' then
     raise exception 'Cannot move a student into an inactive academic group' using errcode = '22023';
-  end if;
-
-  if group_program_id <> existing_membership.academic_program_id then
-    raise exception 'Cannot move a student to a group in a different academic program' using errcode = '22023';
   end if;
 
   if exists (

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { AdminEmptyState, AdminSection } from "@/components/admin/admin-console-ui";
 import { AcademicGroupsEditor } from "@/components/manage/academic-groups-editor";
+import { AcademicProgramStaffEditor } from "@/components/manage/academic-program-staff-editor";
 import { AcademicProgramsEditor } from "@/components/manage/academic-programs-editor";
 import { AcademicTermsEditor } from "@/components/manage/academic-terms-editor";
 import { AcademicUnitsEditor } from "@/components/manage/academic-units-editor";
@@ -12,6 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { getDictionary, resolveLocale, type LocaleParams } from "@/i18n/get-dictionary";
 import { getAdminAcademicCalendarEditor } from "@/lib/admin/get-admin-academic-calendar-editor";
 import { getAdminAcademicGroupsEditor } from "@/lib/admin/get-admin-academic-groups-editor";
+import { getAdminAcademicProgramStaffAssignmentsEditor } from "@/lib/admin/get-admin-academic-program-staff-assignments-editor";
 import { getAdminAcademicProgramsEditor } from "@/lib/admin/get-admin-academic-programs-editor";
 import { getAdminAcademicUnitsEditor } from "@/lib/admin/get-admin-academic-units-editor";
 import { getAdminStudentGroupMembershipEditor } from "@/lib/admin/get-admin-student-group-membership-editor";
@@ -19,6 +21,7 @@ import { cn } from "@/lib/utils";
 import {
   mutateAdminAcademicGroupAction,
   mutateAdminAcademicProgramAction,
+  mutateAdminAcademicProgramStaffAssignmentAction,
   mutateAdminAcademicTermAction,
   mutateAdminAcademicUnitAction,
   mutateAdminAcademicYearAction,
@@ -32,13 +35,14 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
   const query = await searchParams;
   const requestedUniversity = Array.isArray(query.university) ? query.university[0] : query.university;
   const targetUniversityId = z.uuid().safeParse(requestedUniversity).success ? requestedUniversity! : null;
-  const [dictionary, overview, programsOverview, calendarOverview, groupsOverview, membershipOverview] = await Promise.all([
+  const [dictionary, overview, programsOverview, calendarOverview, groupsOverview, membershipOverview, staffAssignmentsOverview] = await Promise.all([
     getDictionary(locale),
     getAdminAcademicUnitsEditor(targetUniversityId),
     getAdminAcademicProgramsEditor(targetUniversityId),
     getAdminAcademicCalendarEditor(targetUniversityId),
     getAdminAcademicGroupsEditor(targetUniversityId),
     getAdminStudentGroupMembershipEditor(targetUniversityId),
+    getAdminAcademicProgramStaffAssignmentsEditor(targetUniversityId),
   ]);
   const t = dictionary.admin.academicStructure;
 
@@ -100,6 +104,14 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
                   membershipOverview={membershipOverview}
                   membershipTranslations={dictionary.app.structureManagement.academic.membershipEditor}
                   membershipAction={mutateAdminStudentGroupMembershipAction}
+                />
+              ) : null}
+              {staffAssignmentsOverview?.selected_university ? (
+                <AcademicProgramStaffEditor
+                  locale={locale}
+                  overview={staffAssignmentsOverview}
+                  translations={dictionary.app.structureManagement.academic.programStaffAssignments}
+                  action={mutateAdminAcademicProgramStaffAssignmentAction}
                 />
               ) : null}
             </>
