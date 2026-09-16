@@ -86,17 +86,28 @@ export default async function AcademicStructureManagementPage({ params, searchPa
 
   const requestedProgramId = Array.isArray(query.program) ? query.program[0] : query.program;
   const validRequestedProgramId = z.uuid().safeParse(requestedProgramId).success ? requestedProgramId : null;
-  const selectedProgramId = (validRequestedProgramId && assignedPrograms.some((program) => program.academic_program_id === validRequestedProgramId))
+  const selectedProgramId = (validRequestedProgramId && assignedPrograms?.some((program) => program.academic_program_id === validRequestedProgramId))
     ? validRequestedProgramId
-    : (assignedPrograms[0]?.academic_program_id ?? null);
+    : (assignedPrograms?.[0]?.academic_program_id ?? null);
   const programStaffOverview = isProgramStaff && selectedProgramId
     ? await getProgramStaffAcademicOverview(context.activeProfile.id, selectedProgramId)
     : null;
   const adaptedProgramStaffOverview = programStaffOverview ? adaptProgramStaffOverview(programStaffOverview) : null;
 
+  // assignedPrograms is null only on a genuine RPC/backend failure (see
+  // getAssignedAcademicPrograms) -- it must never be presented as the
+  // legitimate "zero assigned programs" empty state below. Within the
+  // assignedPrograms.length > 0 branch, selectedProgramId is always
+  // non-null (it falls back to assignedPrograms[0]), so a falsy
+  // adaptedProgramStaffOverview there also always reflects a genuine
+  // getProgramStaffAcademicOverview failure for a known-valid assignment,
+  // never a legitimate empty state -- so it gets the same unavailable
+  // message rather than silently rendering nothing.
   const programStaffSection = isProgramStaff ? (
     <div className="space-y-4">
-      {assignedPrograms.length === 0 ? (
+      {assignedPrograms === null ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">{t.academic.programStaffOverview.unavailable}</div>
+      ) : assignedPrograms.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">{t.academic.programStaffOverview.noPrograms}</div>
       ) : (
         <>
@@ -125,7 +136,9 @@ export default async function AcademicStructureManagementPage({ params, searchPa
               membershipTranslations={t.academic.membershipEditor}
               membershipAction={mutateUniversityStudentGroupMembershipAction}
             />
-          ) : null}
+          ) : (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">{t.academic.programStaffOverview.unavailable}</div>
+          )}
         </>
       )}
     </div>

@@ -560,6 +560,7 @@ const en: Dictionary = {
           programPickerLabel: "Academic program",
           selectProgram: "Select program",
           noPrograms: "You are not currently assigned to any academic program.",
+          unavailable: "Your academic program data could not be loaded. Try again later.",
           roleLabels: { professor: "Professor", program_coordinator: "Program Coordinator" },
         },
         programStaffAssignments: {

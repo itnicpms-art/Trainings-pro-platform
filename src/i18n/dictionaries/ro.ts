@@ -558,6 +558,7 @@ const ro = {
           programPickerLabel: "Program academic",
           selectProgram: "Selectează programul",
           noPrograms: "Nu ești alocat momentan niciunui program academic.",
+          unavailable: "Datele despre programele tale academice nu au putut fi încărcate. Încearcă din nou mai târziu.",
           roleLabels: { professor: "Profesor", program_coordinator: "Coordonator de program" },
         },
         programStaffAssignments: {
