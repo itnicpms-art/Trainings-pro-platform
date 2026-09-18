@@ -2,7 +2,8 @@
 
 ## Completed scope
 
-- Added migration `016_academic_staff_program_access.sql` without modifying migrations 001–015 (015 belongs to TASK 004.8 / Codex and was neither accessed nor touched).
+- Added migration `016_academic_staff_program_access.sql` without modifying migrations 001–015 (`015_course_curriculum_schema_foundation.sql` belongs to TASK 004.8 / Codex, was merged into this branch from `main`, and was not modified by TASK 004.6.1 — see "Migration state" below).
+- Added forward-only migration `017_fix_academic_staff_assigned_programs.sql`, replacing only `get_assigned_academic_programs` to fix a nested-aggregate SQL error found by remote QA against the deployed migration 016 (see "Migration state" below).
 - Widened `academic_group_audit_events.actor_role` and `student_group_membership_audit_events.actor_role` CHECK constraints (discovered by inspecting `pg_constraint` at migration-run time, not a guessed name) to additionally accept `professor`/`program_coordinator` — required so the audit `INSERT` in every extended write RPC doesn't fail its own CHECK the moment a staff actor performs the first mutation.
 - Added `academic_program_staff_assignment_audit_events` — immutable audit trail for grant/revoke, `actor_role` restricted to `university_admin`/`platform_admin` only.
 - Added `resolve_academic_program_editor_mode` (new, additive) and left `resolve_academic_units_editor_mode` (migration 007) completely unchanged.
@@ -12,6 +13,13 @@
 - Extended `/{locale}/app/manage/academic` (no new route) with a professor/program_coordinator section reusing the existing `AcademicGroupsEditor`/`GroupMembershipPanel` components via a new adapter (`adaptProgramStaffOverview`), and added University Admin's grant/revoke access to a new `AcademicProgramStaffEditor` component on that same page.
 - Wired Platform Admin's own grant/revoke access into the *existing* `/{locale}/admin/academic-structure` page (no new admin route) — this page already has a university-selector `<form method="get">` reused unmodified by every other editor on it; `AcademicProgramStaffEditor` now renders there too once a university is selected, backed by a new `getAdminAcademicProgramStaffAssignmentsEditor` wrapper (mirroring `getAdminAcademicGroupsEditor`'s exact platform_admin-role + `admin.access`-permission gate) that calls the same `get_academic_program_staff_assignments_editor_overview` RPC University Admin's page uses. Discoverable via the existing "Structură academică" admin sidebar link — no new navigation was needed.
 - Left `/admin/organizations` and every prior academic editor's own behavior for University Admin/Platform Admin unchanged.
+
+## Migration state
+
+- `016_academic_staff_program_access.sql` has been manually applied to the production Supabase database and is now immutable — no further edits to this file are permitted; any correction must land in a new forward-only migration.
+- `017_fix_academic_staff_assigned_programs.sql` was added forward-only after remote QA against the deployed migration 016 found that `get_assigned_academic_programs` called a nested aggregate (`jsonb_agg(jsonb_build_object(..., jsonb_agg(distinct role.code)))`) in a single `SELECT` — PostgreSQL rejects nested aggregate calls at the same `SELECT` level unconditionally (SQLSTATE 42803), so every call to this RPC failed; the application wrapper's `error || !data ? [] : data` fallback also collapsed that failure into an empty array, which the page rendered as the legitimate "zero assigned programs" state. 017 replaces only `get_assigned_academic_programs` with an equivalent two-level query (an inner subquery groups one row per program and computes `role_codes` there; the outer query `jsonb_agg`s those already-grouped rows), preserving the exact same result contract, `SECURITY DEFINER`/`stable`/`search_path` posture, and execute permissions (unchanged, since the function signature is unchanged). 017 has also been manually applied to the production Supabase database and was QA-tested successfully there; it is now immutable as well.
+- Migrations 001–015 remain unchanged by TASK 004.6.1. `015_course_curriculum_schema_foundation.sql` belongs to TASK 004.8 (Codex); it was merged into this branch from `main` and is byte-for-byte identical to its `main` copy — it was not modified by, and TASK 004.6.1 does not depend on, this migration.
+- No migration 018 (or later) exists for this task; none is anticipated for its current scope.
 
 ## Root cause / model corrections made during design review
 
@@ -50,7 +58,7 @@ Every new/replaced mutation in migration 016 was audited against one rule: no `F
 - No direct table grants were added; RLS remains pure default-deny with zero policies on every table this task touches, matching the established pattern.
 - No hard delete anywhere; audit is atomic everywhere (no `RAISE WARNING`, no swallowed exceptions, no best-effort audit) — confirmed by re-reading every `exception when others` block removed or added in this migration (there are none; every raised exception in migration 016 propagates uncaught).
 - No avoidable `FOR UPDATE` lock is ever acquired before the actor is authorized for the resource being locked — see "SECURITY DEFINER lock ordering" above.
-- Migration 015 (TASK 004.8 / Codex) was never accessed, read, or modified; the Codex worktree was never accessed.
+- Migration 015 (TASK 004.8 / Codex) was merged into this branch from `main` and was not modified — confirmed byte-for-byte identical to its `main` copy at every validation pass; the Codex worktree itself was never accessed.
 
 ## Validation
 
@@ -59,25 +67,24 @@ Every new/replaced mutation in migration 016 was audited against one rule: no `F
 - `git diff --check`: passed, no whitespace errors.
 - Migration 016 was re-read in full after writing it to confirm balanced `$$`/`begin`/`end` blocks (12 functions × 2 + 2 `do` blocks × 2 = 28 `$$` delimiters, matching exactly) and that every carried-forward function body matches its live source (011/012/013/014) except for the intended authorization additions.
 
-## Manual QA still required
+## Remote QA — passed
 
-Migration 016 has not been applied to Supabase and was not exercised end-to-end in this environment. After applying it:
+Migrations 016 and 017 have both been manually applied to the production Supabase database. The following was exercised end-to-end there and passed:
 
-- a professor assigned to exactly one program sees no picker and can manage that program's groups/memberships;
-- the QA professor (assigned to General Medicine + Dentistry) sees a program picker, and switching programs reloads the scoped overview;
-- the QA coordinator (assigned only to General Medicine) is denied access to Dentistry's groups/memberships if a Dentistry group/membership id is attempted directly;
-- a professor cannot move a group from an authorized program into an unauthorized one;
-- promoting a membership does not silently demote a primary membership in a program the actor isn't authorized for, and the operation is denied (not silently skipped) in that case;
-- a professor can re-add a student who previously had a membership (now ended) in their program, but cannot add a student with no prior association with that program;
-- an inactive/archived program blocks staff mutations but remains readable;
-- University Admin can grant/revoke professor/program_coordinator assignments only within their own university; Platform Admin can do so for any selected university; Program Coordinator cannot reach the grant/revoke RPCs successfully;
-- granting an assignment that already exists succeeds idempotently rather than erroring;
-- revoking removes exactly one assignment and leaves every other `profile_roles` row for that profile untouched;
-- every grant/revoke produces a row in `academic_program_staff_assignment_audit_events`; every staff-authorized group/membership mutation produces a row in the existing audit tables with `actor_role` set to `professor`/`program_coordinator`;
-- University Admin and Platform Admin's own existing group/membership/faculty/program/year/term editing behavior is unchanged;
-- `/admin/organizations` and all prior academic editors are unaffected;
-- both locales render the new program picker, program-staff group/membership editor, and the admin assignment editor correctly.
+- Professor multi-program selector: the QA professor (assigned to GMED + PROGRAM-QA-TEST) sees a program-picker selector, and switching programs correctly reloads the scoped overview for each.
+- GMED / PROGRAM-QA-TEST isolation: GMED shows only GMED's groups/data, PROGRAM-QA-TEST shows only its own, with no cross-program leakage in either direction.
+- Membership operations for an authorized professor: add, end, re-add (a student with a prior, now-ended membership in the program), and same-program move all succeed and reflect immediately.
+- Cross-program primary changes: a professor authorized on both GMED and PROGRAM-QA-TEST can change a student's global primary membership; the prior membership is correctly demoted (not removed) and remains active in its own program.
+- Coordinator cross-program denial: a coordinator assigned only to GMED is correctly denied a primary-membership change that would also affect PROGRAM-QA-TEST.
+- Atomic denial / no partial mutation: the denial above leaves no partial state change on any row.
+- Membership audit: successful professor create/end/move/primary-change operations each produce a corresponding row in the relevant audit table with `actor_role` set correctly.
+- Denied mutation creates no false audit event: the denied coordinator mutation above produces no audit row at all.
+- University Admin grant/revoke: program staff grant and revoke both work as expected within their own university.
+- Platform Admin selected-university grant/revoke: `/admin/academic-structure` is accessible, the university selector works, and grant/revoke for the selected university's program staff works.
+- Zero-assignment safe shell: a professor/coordinator with zero program assignments can still open the `/app/manage/academic` management shell, sees the intended empty state ("Nu ești alocat momentan niciunui program academic."), and no protected program/group/student data is exposed — confirmed independent of migration 006's single-context overview.
+- Home stale-context suppression/restoration: a coordinator with zero program assignments no longer sees a stale academic context (faculty/program/year/term) left over from a previously revoked GMED assignment on the Home dashboard; once the GMED assignment is restored, the GMED Home context correctly reappears.
+- Program-access-denied UI message: the coordinator's cross-program denial above shows the specific message "Profilul activ nu are acces la toate programele academice afectate de această modificare." instead of the generic university-scope `forbidden` message.
 
 ## Deferred work
 
-TASK 004.6.2 (nominal Professor/Group assignment, "My groups," self-request, Program Coordinator approval), TASK 004.7 (student join requests), a general-purpose audit viewer, and the optional `profile_roles` uniqueness constraint (flagged in design review as a possible future hygiene improvement, not required for correctness) remain deferred.
+TASK 004.6.2 (nominal Professor/Group assignment, "My groups," self-request, Program Coordinator approval), TASK 004.7 (student join requests), a broader role-aware Home/dashboard context redesign covering all profile types (the Home authorization guard added during remote QA — see "Remote QA — passed" above — is deliberately a minimal professor/program_coordinator-only display guard, not this redesign), a general-purpose audit viewer, and the optional `profile_roles` uniqueness constraint (flagged in design review as a possible future hygiene improvement, not required for correctness) remain deferred.
