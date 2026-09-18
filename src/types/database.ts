@@ -129,7 +129,7 @@ export type AcademicCalendarEditorOverview = {
 
 export type AcademicGroupsEditorOverview = {
   actor_profile_id: string;
-  actor_mode: "university_admin" | "platform_admin";
+  actor_mode: "university_admin" | "platform_admin" | "professor" | "program_coordinator";
   selected_university: { id: string; name: string; status: EntityStatus } | null;
   universities: Array<{ id: string; name: string; status: EntityStatus }>;
   academic_programs: Array<{ id: string; code: string; name: string; status: EditableAcademicUnitStatus }>;
@@ -152,7 +152,7 @@ export type AcademicGroupsEditorOverview = {
 
 export type StudentGroupMembershipEditorOverview = {
   actor_profile_id: string;
-  actor_mode: "university_admin" | "platform_admin";
+  actor_mode: "university_admin" | "platform_admin" | "professor" | "program_coordinator";
   selected_university: { id: string; name: string; status: EntityStatus } | null;
   universities: Array<{ id: string; name: string; status: EntityStatus }>;
   groups: Array<{ id: string; code: string; name: string; status: EditableAcademicUnitStatus; academic_program_id: string }>;
@@ -167,6 +167,89 @@ export type StudentGroupMembershipEditorOverview = {
     is_primary: boolean;
     started_at: string | null;
     ended_at: string | null;
+  }>;
+};
+
+// TASK 004.6.1: a professor/program_coordinator's own multi-program
+// authorization surface. Distinct from AcademicGroupsEditorOverview /
+// StudentGroupMembershipEditorOverview (both university-shaped), so a
+// program-scoped overview is adapted into those shapes at the UI layer
+// instead of widening either type further.
+export type AssignedAcademicProgram = {
+  academic_program_id: string;
+  code: string;
+  name: string;
+  status: EditableAcademicUnitStatus;
+  organization_id: string;
+  organization_name: string;
+  organization_unit_id: string | null;
+  organization_unit_name: string | null;
+  role_codes: Array<"professor" | "program_coordinator">;
+};
+
+export type ProgramStaffAcademicOverview = {
+  actor_profile_id: string;
+  actor_mode: "university_admin" | "platform_admin" | "professor" | "program_coordinator";
+  selected_program: {
+    id: string;
+    code: string;
+    name: string;
+    status: EditableAcademicUnitStatus;
+    organization_id: string;
+    organization_unit_id: string | null;
+  } | null;
+  selected_university: { id: string; name: string; status: EntityStatus } | null;
+  organization_unit: { id: string; name: string; unit_type: OrganizationUnitType; status: EntityStatus } | null;
+  academic_years: Array<{ id: string; code: string; name: string; status: EditableAcademicUnitStatus }>;
+  academic_terms: Array<{ id: string; academic_year_id: string; code: string; name: string; term_type: AcademicTermType; status: EditableAcademicUnitStatus }>;
+  academic_groups: Array<{
+    id: string;
+    organization_id: string;
+    academic_program_id: string;
+    academic_year_id: string | null;
+    academic_term_id: string | null;
+    code: string;
+    name: string;
+    description: string | null;
+    status: EditableAcademicUnitStatus;
+    created_at: string;
+    updated_at: string;
+  }>;
+  eligible_students: Array<{ id: string; display_name: string }>;
+  memberships: Array<{
+    id: string;
+    student_profile_id: string;
+    student_display_name: string;
+    academic_group_id: string;
+    academic_program_id: string;
+    status: EntityStatus;
+    is_primary: boolean;
+    started_at: string | null;
+    ended_at: string | null;
+  }>;
+};
+
+export type AcademicProgramStaffAssignmentsEditorOverview = {
+  actor_profile_id: string;
+  actor_mode: "university_admin" | "platform_admin";
+  selected_university: { id: string; name: string; status: EntityStatus } | null;
+  universities: Array<{ id: string; name: string; status: EntityStatus }>;
+  academic_programs: Array<{
+    id: string;
+    code: string;
+    name: string;
+    status: EntityStatus;
+    organization_unit_id: string | null;
+    organization_unit_name: string | null;
+  }>;
+  eligible_staff_profiles: Array<{ id: string; display_name: string; profile_type: ProfileType }>;
+  assignments: Array<{
+    id: string;
+    target_profile_id: string;
+    target_profile_display_name: string;
+    academic_program_id: string;
+    role_code: "professor" | "program_coordinator";
+    created_at: string;
   }>;
 };
 
@@ -578,6 +661,38 @@ export type Database = {
       set_primary_group_membership: {
         Args: { requested_profile_id: string; membership_id: string };
         Returns: StudentGroupMembershipEditorOverview["memberships"][number];
+      };
+      grant_academic_program_staff_role: {
+        Args: {
+          requested_profile_id: string;
+          target_profile_id: string;
+          target_academic_program_id: string;
+          role_code: "professor" | "program_coordinator";
+        };
+        Returns: {
+          id: string;
+          target_profile_id: string;
+          academic_program_id: string;
+          role_code: "professor" | "program_coordinator";
+          created_at: string;
+          already_existed: boolean;
+        };
+      };
+      revoke_academic_program_staff_role: {
+        Args: { requested_profile_id: string; assignment_id: string };
+        Returns: { id: string; revoked: boolean };
+      };
+      get_academic_program_staff_assignments_editor_overview: {
+        Args: { requested_profile_id: string; target_university_id?: string | null };
+        Returns: AcademicProgramStaffAssignmentsEditorOverview;
+      };
+      get_assigned_academic_programs: {
+        Args: { requested_profile_id: string };
+        Returns: AssignedAcademicProgram[];
+      };
+      get_program_staff_academic_overview: {
+        Args: { requested_profile_id: string; target_academic_program_id: string };
+        Returns: ProgramStaffAcademicOverview;
       };
       get_platform_admin_organizations_editor: {
         Args: { requested_profile_id: string };
