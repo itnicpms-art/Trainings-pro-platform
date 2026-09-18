@@ -127,6 +127,27 @@ export type AcademicCalendarEditorOverview = {
   }>;
 };
 
+// TASK 004.6.2: nominal Professor <-> Academic Group responsibility.
+// Shared shape returned (identically) by get_program_staff_academic_overview
+// and get_academic_groups_editor_overview -- two independent RPCs, not a
+// shared backend, kept in sync in shape so AcademicGroupsEditor /
+// AcademicGroupStaffPanel can render either source uniformly.
+export type AcademicGroupStaffAssignment = {
+  id: string;
+  academic_group_id: string;
+  academic_program_id: string;
+  staff_profile_id: string;
+  staff_display_name: string;
+  assigned_by_profile_id: string;
+  created_at: string;
+};
+
+export type EligibleProfessor = {
+  academic_program_id: string;
+  profile_id: string;
+  display_name: string;
+};
+
 export type AcademicGroupsEditorOverview = {
   actor_profile_id: string;
   actor_mode: "university_admin" | "platform_admin" | "professor" | "program_coordinator";
@@ -135,6 +156,8 @@ export type AcademicGroupsEditorOverview = {
   academic_programs: Array<{ id: string; code: string; name: string; status: EditableAcademicUnitStatus }>;
   academic_years: Array<{ id: string; code: string; name: string; status: EditableAcademicUnitStatus }>;
   academic_terms: Array<{ id: string; academic_year_id: string; code: string; name: string; term_type: AcademicTermType; status: EditableAcademicUnitStatus }>;
+  group_staff_assignments: AcademicGroupStaffAssignment[];
+  eligible_professors: EligibleProfessor[];
   academic_groups: Array<{
     id: string;
     organization_id: string;
@@ -227,6 +250,8 @@ export type ProgramStaffAcademicOverview = {
     started_at: string | null;
     ended_at: string | null;
   }>;
+  group_staff_assignments: AcademicGroupStaffAssignment[];
+  eligible_professors: EligibleProfessor[];
 };
 
 export type AcademicProgramStaffAssignmentsEditorOverview = {
@@ -681,6 +706,20 @@ export type Database = {
       revoke_academic_program_staff_role: {
         Args: { requested_profile_id: string; assignment_id: string };
         Returns: { id: string; revoked: boolean };
+      };
+      assign_professor_to_academic_group: {
+        Args: { requested_profile_id: string; target_academic_group_id: string; target_profile_id: string };
+        Returns: {
+          id: string;
+          academic_group_id: string;
+          staff_profile_id: string;
+          created_at: string;
+          already_existed: boolean;
+        };
+      };
+      unassign_professor_from_academic_group: {
+        Args: { requested_profile_id: string; assignment_id: string };
+        Returns: { id: string; unassigned: boolean };
       };
       get_academic_program_staff_assignments_editor_overview: {
         Args: { requested_profile_id: string; target_university_id?: string | null };

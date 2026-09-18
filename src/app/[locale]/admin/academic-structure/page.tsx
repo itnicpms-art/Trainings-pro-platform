@@ -20,6 +20,7 @@ import { getAdminStudentGroupMembershipEditor } from "@/lib/admin/get-admin-stud
 import { cn } from "@/lib/utils";
 import {
   mutateAdminAcademicGroupAction,
+  mutateAdminAcademicGroupStaffAssignmentAction,
   mutateAdminAcademicProgramAction,
   mutateAdminAcademicProgramStaffAssignmentAction,
   mutateAdminAcademicTermAction,
@@ -104,6 +105,8 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
                   membershipOverview={membershipOverview}
                   membershipTranslations={dictionary.app.structureManagement.academic.membershipEditor}
                   membershipAction={mutateAdminStudentGroupMembershipAction}
+                  groupStaffTranslations={dictionary.app.structureManagement.academic.groupStaffEditor}
+                  groupStaffAction={mutateAdminAcademicGroupStaffAssignmentAction}
                 />
               ) : null}
               {staffAssignmentsOverview?.selected_university ? (
