@@ -72,6 +72,16 @@
 -- hide -- get_academic_groups_editor_overview never actually authorizes a
 -- 'professor' actor_mode today, so no equivalent filter exists there.
 --
+-- eligible_professors in both read RPCs is a read-model mirror of the
+-- assign RPC's own eligibility rules (real professor profile_roles row for
+-- the program, active profile, profile's university = the program's
+-- university -- never profile_type) and is deduplicated to at most one row
+-- per (academic_program_id, profile_id): profile_roles has no unique
+-- constraint, so duplicate professor rows for the same profile+program are
+-- supported and must never surface as duplicate dropdown entries. The
+-- assign RPC re-enforces the same rules independently and stays
+-- authoritative.
+--
 -- Course / Course Offering staff assignment (TASK 004.8.1, future) and
 -- student join requests (TASK 004.7) are explicitly out of scope and
 -- untouched here.
@@ -1026,19 +1036,44 @@ begin
     -- A plain professor never receives the eligible-professor roster --
     -- the subquery in the else branch below does not run for that actor
     -- mode at all, it is not merely filtered out afterward.
+    --
+    -- A profile is listed only if ALL of: a real profile_roles row with
+    -- role.code = 'professor', scope_type = 'program' and scope_id = this
+    -- program; profiles.status = 'active'; and profiles.university_id =
+    -- the program's organization_id -- never profile_type.
+    -- assign_professor_to_academic_group independently re-enforces these
+    -- same rules and remains the authority; this is only their read-model
+    -- mirror. profile_roles intentionally has no unique constraint, so one
+    -- profile+program pair can legitimately hold several professor rows;
+    -- the inner select distinct collapses them to at most one row per
+    -- (academic_program_id, profile_id), so a duplicate role row can never
+    -- produce a duplicate dropdown entry. The distinct lives in the inner
+    -- subquery and the aggregate in the outer query, so no aggregate call
+    -- is nested inside another aggregate's arguments.
     'eligible_professors', case when actor_mode = 'professor' then '[]'::jsonb else coalesce((
       select jsonb_agg(jsonb_build_object(
-        'academic_program_id', profile_role.scope_id,
-        'profile_id', staff.id,
-        'display_name', staff.display_name
-      ) order by staff.display_name, staff.id)
-      from public.profile_roles profile_role
-      join public.roles role
-        on role.id = profile_role.role_id
-       and role.code = 'professor'
-      join public.profiles staff on staff.id = profile_role.profile_id
-      where profile_role.scope_type = 'program'
-        and profile_role.scope_id = target_academic_program_id
+        'academic_program_id', eligible.academic_program_id,
+        'profile_id', eligible.profile_id,
+        'display_name', eligible.display_name
+      ) order by eligible.display_name, eligible.profile_id)
+      from (
+        select distinct
+          profile_role.scope_id as academic_program_id,
+          staff.id as profile_id,
+          staff.display_name
+        from public.profile_roles profile_role
+        join public.roles role
+          on role.id = profile_role.role_id
+         and role.code = 'professor'
+        join public.academic_programs program
+          on program.id = profile_role.scope_id
+        join public.profiles staff
+          on staff.id = profile_role.profile_id
+         and staff.status = 'active'
+         and staff.university_id = program.organization_id
+        where profile_role.scope_type = 'program'
+          and profile_role.scope_id = target_academic_program_id
+      ) eligible
     ), '[]'::jsonb) end
   );
 end;
@@ -1197,21 +1232,41 @@ begin
       join public.profiles staff on staff.id = item.staff_profile_id
       where item.organization_id = resolved_university_id
     ), '[]'::jsonb),
+    -- Same eligibility rules and the same deduplication as
+    -- get_program_staff_academic_overview's eligible_professors (see the
+    -- comment there): real professor profile_roles row for the program,
+    -- profiles.status = 'active', profiles.university_id = the program's
+    -- organization_id, never profile_type -- but scoped to every program in
+    -- the resolved university. Each row carries its academic_program_id so
+    -- the UI can filter candidates per group; a professor eligible for
+    -- several programs appears once per program, and never more than once
+    -- per (academic_program_id, profile_id) even when duplicate
+    -- profile_roles rows exist. assign_professor_to_academic_group
+    -- independently re-enforces the same rules and remains the authority.
     'eligible_professors', coalesce((
       select jsonb_agg(jsonb_build_object(
-        'academic_program_id', profile_role.scope_id,
-        'profile_id', staff.id,
-        'display_name', staff.display_name
-      ) order by staff.display_name, staff.id)
-      from public.profile_roles profile_role
-      join public.roles role
-        on role.id = profile_role.role_id
-       and role.code = 'professor'
-      join public.academic_programs program
-        on program.id = profile_role.scope_id
-       and program.organization_id = resolved_university_id
-      join public.profiles staff on staff.id = profile_role.profile_id
-      where profile_role.scope_type = 'program'
+        'academic_program_id', eligible.academic_program_id,
+        'profile_id', eligible.profile_id,
+        'display_name', eligible.display_name
+      ) order by eligible.display_name, eligible.profile_id, eligible.academic_program_id)
+      from (
+        select distinct
+          profile_role.scope_id as academic_program_id,
+          staff.id as profile_id,
+          staff.display_name
+        from public.profile_roles profile_role
+        join public.roles role
+          on role.id = profile_role.role_id
+         and role.code = 'professor'
+        join public.academic_programs program
+          on program.id = profile_role.scope_id
+         and program.organization_id = resolved_university_id
+        join public.profiles staff
+          on staff.id = profile_role.profile_id
+         and staff.status = 'active'
+         and staff.university_id = program.organization_id
+        where profile_role.scope_type = 'program'
+      ) eligible
     ), '[]'::jsonb)
   );
 end;
