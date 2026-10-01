@@ -63,6 +63,44 @@
 --      clear reason; the request itself stays pending (no auto-reject, no
 --      auto-expire) until the student cancels it or an approver rejects it.
 --
+-- CONCURRENCY (approve_academic_group_join_request specifically -- see the
+-- inline CONCURRENCY NOTE/FIX comments at each check inside that function
+-- for the full reasoning):
+--   - The request row itself is locked (FOR UPDATE) before PRODUCT RULE 8's
+--     revalidation runs, exactly like every other lock-then-revalidate RPC
+--     in this schema.
+--   - The academic_programs row is also locked (FOR UPDATE), held for the
+--     rest of the transaction, before add_student_to_group is ever called
+--     -- this is a genuine fix: a plain read left a window where a
+--     concurrent update_academic_program could deactivate the program
+--     after this function's own check but before the membership mutation,
+--     which add_student_to_group does not independently close for every
+--     actor_mode. Locking programs before groups matches this schema's one
+--     established relative order between the two (update_academic_group
+--     already locks academic_programs before academic_groups), so this
+--     cannot introduce a deadlock against it, against
+--     update_academic_program, or against add_student_to_group itself.
+--   - The academic_groups row is deliberately NOT separately locked here:
+--     add_student_to_group already locks it (FOR UPDATE) and holds that
+--     lock for the rest of this same transaction, which is the real
+--     closure for group status/program_id/organization_id drift. This
+--     function's own group read stays unlocked and exists only to produce
+--     this workflow's own, more specific error message.
+--   - The student's "active program association" is intentionally never
+--     locked: there is no single row to usefully pre-lock (zero, one, or
+--     many rows can qualify), and approval's own effect (the membership it
+--     creates or links) always re-establishes an active association with
+--     the program for that student, so the invariant this check protects
+--     cannot end up violated in the final committed state.
+--   - True concurrent-session races (a second, truly simultaneous database
+--     session, as opposed to an earlier transaction that already committed
+--     before this one starts) cannot be exercised against a single
+--     in-process PGlite connection; validation below runs the sequential
+--     approximation instead (arrange the conflicting state, then approve)
+--     and the locking argument above is what closes the true-concurrency
+--     case, not an executed test of it. This is the same disclosed
+--     limitation as TASK 004.6.2's own validation notes.
+--
 -- ============================================================
 -- A. Current requests. One row per join request; a decided request is
 -- never mutated again except by this migration's own RPCs transitioning
@@ -486,6 +524,23 @@ begin
     raise exception 'Student profile is not active' using errcode = '22023';
   end if;
 
+  -- CONCURRENCY NOTE (no lock, by design): this exists-check has no row to
+  -- usefully pre-lock -- the qualifying row for "active association with
+  -- this program" need not be the membership being approved, there can be
+  -- zero/one/many of them, and a currently-unlocked row offers nothing a
+  -- lock would improve here. If the one qualifying row is instead a GROUP
+  -- membership in a *different* group of the same program and it is ended
+  -- by a concurrent end_student_group_membership/move_student_group_
+  -- membership call right after this check, the approval below still
+  -- creates (or links) an active membership for this exact program, so the
+  -- student ends this transaction with an active association with the
+  -- program regardless -- the invariant this check protects (the student
+  -- is never left associated with a program they have no real tie to) is
+  -- re-established by approval's own effect, not violated by it. A
+  -- group-less (academic_group_id is null) qualifying row cannot be ended
+  -- by any RPC in this schema at all: end_student_group_membership and
+  -- move_student_group_membership both require academic_group_id is not
+  -- null (see migration 016), so that sub-case is not reachable today.
   select exists (
     select 1
     from public.academic_profile_contexts context
@@ -499,6 +554,18 @@ begin
     raise exception 'Student no longer has an active academic association with this program' using errcode = '22023';
   end if;
 
+  -- CONCURRENCY NOTE (no lock here either, deliberately): this read is only
+  -- the friendly early error message ("archived" vs "inactive" vs "changed
+  -- since the request was created"), kept so this workflow's own error
+  -- text (matched by name in mutate-academic-group-join-request.ts) does
+  -- not change. The actual race-closer is add_student_to_group's own
+  -- SELECT ... FOR UPDATE on this exact academic_groups row (migration
+  -- 016), acquired moments later and held for the rest of THIS same
+  -- transaction (a SECURITY DEFINER call does not open a new transaction),
+  -- which re-verifies status/academic_program_id/organization_id fresh and
+  -- aborts the whole approval if any of them changed. Duplicating a second
+  -- lock here would only ever re-lock the same row this transaction
+  -- already owns, for no additional protection.
   select item.status, item.academic_program_id, item.organization_id
   into current_group_status, current_group_program_id, current_group_organization_id
   from public.academic_groups item
@@ -515,10 +582,27 @@ begin
     raise exception 'Cannot approve a request for an inactive or archived academic group' using errcode = '22023';
   end if;
 
+  -- CONCURRENCY FIX: locked, not merely read -- a plain SELECT here left a
+  -- real window where a concurrent update_academic_program call could
+  -- deactivate the program after this check passed but before the
+  -- membership mutation below, because (unlike the group, above)
+  -- add_student_to_group never re-verifies program status at all for
+  -- university_admin/platform_admin actor_mode, and only via its own
+  -- unlocked read for professor/program_coordinator. Locking it here closes
+  -- the window for every actor_mode: the lock is held for the rest of this
+  -- transaction, so update_academic_program (which locks organization_units
+  -- then academic_programs, migration 009) cannot change this row again
+  -- until this transaction commits or rolls back. Programs are always
+  -- locked before groups in this schema (see update_academic_group,
+  -- migration 018, which locks academic_programs before academic_groups),
+  -- and this lock is acquired here, before add_student_to_group locks the
+  -- group just below -- so this cannot deadlock against it or against
+  -- update_academic_program/update_academic_group.
   select program.status
   into current_program_status
   from public.academic_programs program
-  where program.id = request_row.academic_program_id;
+  where program.id = request_row.academic_program_id
+  for update;
 
   if current_program_status is distinct from 'active' then
     raise exception 'Cannot approve a request for an inactive academic program' using errcode = '22023';
@@ -617,7 +701,7 @@ $$;
 create or replace function public.reject_academic_group_join_request(
   requested_profile_id uuid,
   request_id uuid,
-  decision_note_input text default null
+  decision_note text default null
 )
 returns jsonb
 language plpgsql
@@ -630,6 +714,18 @@ declare
   updated_request public.academic_group_join_requests%rowtype;
   authorized_request_id uuid;
   authorized_program_id uuid;
+  -- This parameter must be named decision_note, matching src/types/
+  -- database.ts and the Supabase client call in mutate-academic-group-
+  -- join-request.ts exactly: Supabase/PostgREST resolves RPC arguments by
+  -- name, not position, so a renamed parameter silently breaks every call
+  -- from the application even though PGlite's positional test harness
+  -- cannot detect it. A same-named local variable, normalized once here,
+  -- is used below instead of the bare parameter so plpgsql's default
+  -- variable_conflict = error setting never has to choose between the
+  -- parameter and the identically-named column inside UPDATE ... SET --
+  -- that exact ambiguity (42702) is why this function once needed a
+  -- differently-named parameter in the first place.
+  normalized_decision_note text;
 begin
   if auth.uid() is null then
     raise exception 'Active profile ownership required' using errcode = '42501';
@@ -666,11 +762,13 @@ begin
     raise exception 'Only a pending request can be rejected' using errcode = '22023';
   end if;
 
+  normalized_decision_note := nullif(btrim(decision_note), '');
+
   update public.academic_group_join_requests
   set status = 'rejected',
       reviewed_by_profile_id = requested_profile_id,
       reviewed_at = now(),
-      decision_note = nullif(btrim(decision_note_input), '')
+      decision_note = normalized_decision_note
   where id = request_row.id
   returning * into updated_request;
 
