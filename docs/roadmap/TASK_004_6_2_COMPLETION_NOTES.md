@@ -24,8 +24,10 @@
 
 ## Migration state
 
-- Migrations 001–017 are unchanged. 016 and 017 are already applied to production and remain immutable; neither was edited.
-- `018_academic_group_staff_responsibilities.sql` is the only new migration. It has **not** been applied remotely and no seed was run against production — this is source-only work, pending review.
+- Migrations 001–017 are unchanged. 016 and 017 were already applied to production and remain immutable; neither was edited.
+- `018_academic_group_staff_responsibilities.sql` is the only new migration. It was applied manually to production during TASK 004.6.2 QA and is now **deployed and immutable**. Any later database correction must be forward-only in migration 019 or later; migration 018 must not be edited.
+- Production postflight confirmed both new tables exist, RLS is enabled on both, `pg_policies` returns zero policies for them, and both new RPCs (`assign_professor_to_academic_group`, `unassign_professor_from_academic_group`) exist.
+- No production seed was run as part of deployment.
 - Every existing function this migration touches (`revoke_academic_program_staff_role`, `update_academic_group`, `get_program_staff_academic_overview`, `get_academic_groups_editor_overview`) keeps its exact signature, so its existing grants are preserved automatically; only the two new functions needed explicit `revoke`/`grant`.
 
 ## Self-target rule
@@ -49,34 +51,31 @@ No special-case code exists anywhere for a Program Coordinator/University Admin/
 - `git diff --check`: passed, no whitespace errors.
 - Migration 018 was re-read in full after writing it to confirm balanced `$$`/`begin`/`end` blocks (6 functions × 2 = 12 `$$` delimiters, matching exactly) and that every carried-forward function body (`revoke_academic_program_staff_role`, `update_academic_group`, `get_program_staff_academic_overview`, `get_academic_groups_editor_overview`) matches its live migration-016/011 source except for the intended additions.
 - Migrations 001–017 confirmed unchanged: `git diff origin/main -- supabase/migrations/001*.sql ... 017*.sql` is empty (the branch was created directly from `origin/main`, so this diff is trivially empty by construction, and was re-checked after writing migration 018 to confirm nothing else touched those files).
-- Migration 018 was corrected in place (it is unapplied and unmerged, so this is not an edit of a deployed migration) to add the `eligible_professors` deduplication and full eligibility filter described above; no migration 019 exists.
-- Because plpgsql only syntax-checks embedded SQL when a function is created (the reason migration 017 was needed), migration 018 was also **executed** locally: migrations 001–018 were applied, in order, to a throwaway in-memory Postgres (PGlite, run from outside the repository, with stand-ins for Supabase's `auth.users`/`auth.uid()`/`anon`/`authenticated`) and 87 scenario checks were run against it — assign/duplicate assign/unassign, self-target allowed and denied, plain-professor denial, cross-program and cross-university denial, inactive/archived group and program rules, professor-payload privacy, the deduplication and eligibility assertions above, last-row revoke cleanup with a duplicate professor row, coordinator-role revoke leaving responsibilities intact, cross-program group-move blocking, and full rollback when a cleanup audit insert fails — all passed. The same suite run against the pre-correction migration 018 failed 11 checks (duplicate professor entries; inactive and other-university profiles listed), confirming the assertions detect the defect. Concurrent-session races (advisory-lock interleavings) cannot be exercised in a single in-process connection and remain part of the manual QA above. No Supabase project, remote database, or seed was touched, and the harness is not part of this repository.
+- Migration 018 was corrected in place **before deployment** to add the `eligible_professors` deduplication and full eligibility filter described above. After production deployment it is immutable; no migration 019 exists.
+- Because plpgsql only syntax-checks embedded SQL when a function is created (the reason migration 017 was needed), migration 018 was also **executed** locally: migrations 001–018 were applied, in order, to a throwaway in-memory Postgres (PGlite, run from outside the repository, with stand-ins for Supabase's `auth.users`/`auth.uid()`/`anon`/`authenticated`) and 87 scenario checks were run against it — assign/duplicate assign/unassign, self-target allowed and denied, plain-professor denial, cross-program and cross-university denial, inactive/archived group and program rules, professor-payload privacy, the deduplication and eligibility assertions above, last-row revoke cleanup with a duplicate professor row, coordinator-role revoke leaving responsibilities intact, cross-program group-move blocking, and full rollback when a cleanup audit insert fails — all passed. The same suite run against the pre-correction migration 018 failed 11 checks (duplicate professor entries; inactive and other-university profiles listed), confirming the assertions detect the defect. Concurrent-session races (advisory-lock interleavings) cannot be exercised in a single in-process connection and remain part of the manual QA above. The local harness itself touched no Supabase project or remote database and is not part of this repository. Production deployment and end-to-end QA were performed separately afterward; no production seed was run.
 
-## Manual QA still required
+## Production QA completed
 
-Migration 018 has not been applied to Supabase and was not exercised end-to-end in this environment. After applying it:
+Migration 018 was deployed manually to production and exercised end-to-end against the QA fixtures. The following checks passed:
 
-- a Program Coordinator can assign an eligible professor (real current professor role in the coordinated program) to a group in that program, and the assignment appears immediately;
-- assigning a profile with `profile_type='professor'` but no real program-scoped professor role is denied;
-- assigning an eligible professor to a group in a program the coordinator does not coordinate is denied;
-- a plain professor's crafted/manual call to assign or unassign is denied `42501` regardless of UI state;
-- an eligible professor can be assigned to multiple groups, in the same or different authorized programs;
-- a professor with zero group responsibilities keeps full TASK 004.6.1 program access, and "My groups" is empty;
-- a plain professor's `get_program_staff_academic_overview` payload contains only their own `group_staff_assignments` rows and an empty `eligible_professors` array — verified at the RPC/network level, not just visually;
-- a Program Coordinator's overview shows every responsibility and every eligible professor in the coordinated program;
-- **deduplication assertion:** a profile that holds **two** professor `profile_roles` rows for the same program appears in `eligible_professors` **exactly once** — in `get_program_staff_academic_overview` and in `get_academic_groups_editor_overview` (once per program it is eligible for) — so the assign dropdown never shows a duplicate entry;
-- **eligibility assertion:** `eligible_professors` never lists an inactive profile, a profile whose `university_id` differs from the program's university, a profile with `profile_type='professor'` but no real program-scoped professor role, or a profile holding only `program_coordinator`;
-- University Admin manages responsibilities from `/[locale]/app/manage/academic` within their own university only;
-- Platform Admin manages responsibilities from `/[locale]/admin/academic-structure` for the selected university only;
-- a Program Coordinator who also independently holds `professor` for the same program can assign themselves to a group, and the audit row records `actor_role='program_coordinator'`;
-- the same Coordinator, without an independent professor role, is denied the identical self-target attempt;
-- two rapid duplicate assign attempts for the same (group, professor) leave exactly one live row and exactly one `assign` audit event; the second response reports `already_existed: true`;
-- unassign removes the exact row and records one `unassign` audit event;
-- assigning to an inactive/archived group or program is denied; unassigning an existing responsibility from an inactive/archived group or program still succeeds;
-- moving a group with active responsibilities to a different program is denied; after explicitly unassigning every professor, the same move succeeds under the existing authorization rules;
-- a profile with two professor `profile_roles` rows for the same program (an edge case `grant_academic_program_staff_role`'s idempotency should normally prevent, but worth exercising directly) keeps its group responsibilities intact when only one row is revoked, and loses them (with one `cleanup_on_program_role_revoke` audit row per responsibility) only when the last one is revoked;
-- revoking a `program_coordinator` role never removes an independent professor role's group responsibilities;
-- both locales render the assign form, the responsibility list, the read-only badge view for a plain professor, and the "My groups" filter correctly.
+- postflight: both new tables exist, both have RLS enabled, both expose zero RLS policies, and both new RPCs exist;
+- Program Coordinator assigns and unassigns an eligible Professor in a coordinated program; the live row and immutable `assign`/`unassign` audit snapshots are correct;
+- plain Professor read model is server-side private: `actor_mode='professor'`, `eligible_professors=[]`, and `group_staff_assignments` contains only the professor's own rows;
+- plain Professor cannot call assign directly (`42501`), with no live row and no false audit;
+- Program Coordinator cannot assign into an uncoordinated program, with no live row and no false audit;
+- coordinator-only self-target is denied; after adding a separate Professor role for the same program, Coordinator self-target succeeds and audits `actor_role='program_coordinator'`;
+- revoking the last Professor program role removes the live group responsibility and records `cleanup_on_program_role_revoke` with the revoking University Admin as actor while leaving the independent Coordinator role intact;
+- duplicate assign is idempotent: first call reports new, second call reports `already_existed=true`, one live row remains, and only one new `assign` audit event is written;
+- moving a group to another program while it has an active Professor responsibility is denied and leaves both the group program and responsibility unchanged;
+- University Admin assign/unassign succeeds from `/[locale]/app/manage/academic` with `actor_role='university_admin'`;
+- Platform Admin assign/unassign succeeds from `/[locale]/admin/academic-structure` with `actor_role='platform_admin'`;
+- a Professor with zero group responsibilities still retains the full program/group access supplied by TASK 004.6.1; enabling "My groups" yields an empty list while disabling it restores the full program group list.
+
+The production QA also confirmed direct table access remains revoked from `authenticated`; SQL Editor hints suggesting `GRANT SELECT` were intentionally not followed.
+
+## Remaining edge-case coverage
+
+The throwaway PGlite suite (87/87 checks) covers the additional inactive/archived-state rules, duplicate professor-role-row semantics, eligibility/dedup exclusions, audit-failure rollback, and coordinator-role-revoke behavior described above. These were not all repeated manually in production. Concurrent-session advisory-lock interleavings were not exercised manually and remain the only validation area that requires a true multi-session stress test if we want explicit concurrency proof beyond the lock design and single-connection coverage.
 
 ## Deferred work
 
