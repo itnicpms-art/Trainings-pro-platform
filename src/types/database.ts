@@ -173,6 +173,21 @@ export type AcademicGroupsEditorOverview = {
   }>;
 };
 
+// TASK 004.7: a pending student join request, as surfaced to an approver
+// (professor/program_coordinator via ProgramStaffAcademicOverview,
+// university_admin/platform_admin via StudentGroupMembershipEditorOverview).
+// Same shape in both -- two independent RPCs, not a shared backend.
+export type PendingAcademicGroupJoinRequest = {
+  id: string;
+  student_profile_id: string;
+  student_display_name: string;
+  academic_group_id: string;
+  academic_group_name: string | null;
+  academic_program_id: string;
+  student_note: string | null;
+  created_at: string;
+};
+
 export type StudentGroupMembershipEditorOverview = {
   actor_profile_id: string;
   actor_mode: "university_admin" | "platform_admin" | "professor" | "program_coordinator";
@@ -191,6 +206,53 @@ export type StudentGroupMembershipEditorOverview = {
     started_at: string | null;
     ended_at: string | null;
   }>;
+  pending_join_requests: PendingAcademicGroupJoinRequest[];
+};
+
+// TASK 004.7: a student's own academic_profile_contexts rows (not just the
+// primary -- unlike the single-row Home readout), eligible groups to
+// request in a program they are actively associated with, and their own
+// join requests (pending + history).
+export type StudentAcademicGroupMembership = {
+  id: string;
+  academic_group_id: string;
+  academic_group_name: string | null;
+  academic_group_code: string | null;
+  academic_program_id: string;
+  academic_program_name: string;
+  status: EntityStatus;
+  is_primary: boolean;
+  started_at: string | null;
+  ended_at: string | null;
+};
+
+export type StudentEligibleAcademicGroup = {
+  id: string;
+  code: string;
+  name: string;
+  academic_program_id: string;
+  academic_program_name: string;
+};
+
+export type StudentAcademicGroupJoinRequest = {
+  id: string;
+  academic_group_id: string;
+  academic_group_name: string | null;
+  academic_program_id: string;
+  academic_program_name: string;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  student_note: string | null;
+  decision_note: string | null;
+  reviewed_at: string | null;
+  resulting_membership_id: string | null;
+  created_at: string;
+};
+
+export type StudentAcademicGroupJoinOverview = {
+  actor_profile_id: string;
+  memberships: StudentAcademicGroupMembership[];
+  eligible_groups: StudentEligibleAcademicGroup[];
+  requests: StudentAcademicGroupJoinRequest[];
 };
 
 // TASK 004.6.1: a professor/program_coordinator's own multi-program
@@ -252,6 +314,7 @@ export type ProgramStaffAcademicOverview = {
   }>;
   group_staff_assignments: AcademicGroupStaffAssignment[];
   eligible_professors: EligibleProfessor[];
+  pending_join_requests: PendingAcademicGroupJoinRequest[];
 };
 
 export type AcademicProgramStaffAssignmentsEditorOverview = {
@@ -720,6 +783,26 @@ export type Database = {
       unassign_professor_from_academic_group: {
         Args: { requested_profile_id: string; assignment_id: string };
         Returns: { id: string; unassigned: boolean };
+      };
+      request_academic_group_join: {
+        Args: { requested_profile_id: string; target_academic_group_id: string; student_note?: string | null };
+        Returns: { id: string; status: string; already_pending: boolean };
+      };
+      cancel_academic_group_join_request: {
+        Args: { requested_profile_id: string; request_id: string };
+        Returns: { id: string; status: string };
+      };
+      approve_academic_group_join_request: {
+        Args: { requested_profile_id: string; request_id: string };
+        Returns: { id: string; status: string; resulting_membership_id: string | null };
+      };
+      reject_academic_group_join_request: {
+        Args: { requested_profile_id: string; request_id: string; decision_note?: string | null };
+        Returns: { id: string; status: string };
+      };
+      get_student_academic_group_join_overview: {
+        Args: { requested_profile_id: string };
+        Returns: StudentAcademicGroupJoinOverview;
       };
       get_academic_program_staff_assignments_editor_overview: {
         Args: { requested_profile_id: string; target_university_id?: string | null };

@@ -1,4 +1,4 @@
-import { ArrowRight, Home, Settings, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowRight, GraduationCap, Home, Settings, ShieldCheck, UsersRound } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +14,27 @@ type QuickActionTranslations = {
   settings: string;
   homepage: string;
   admin: string;
+  myGroups: string;
   future: string;
 };
 
-export function DashboardQuickActions({ locale, translations: t, futureLabel, comingSoon, canAccessAdmin }: { locale: Locale; translations: QuickActionTranslations; futureLabel: string; comingSoon: string; canAccessAdmin: boolean }) {
+export function DashboardQuickActions({
+  locale,
+  translations: t,
+  futureLabel,
+  comingSoon,
+  canAccessAdmin,
+  showGroupsLink,
+}: {
+  locale: Locale;
+  translations: QuickActionTranslations;
+  futureLabel: string;
+  comingSoon: string;
+  canAccessAdmin: boolean;
+  showGroupsLink: boolean;
+}) {
   const actions = [
+    ...(showGroupsLink ? [{ href: `/${locale}/app/groups`, label: t.myGroups, icon: GraduationCap }] : []),
     { href: `/${locale}/app/profiles`, label: t.profiles, icon: UsersRound },
     { href: `/${locale}/app/settings`, label: t.settings, icon: Settings },
     { href: `/${locale}`, label: t.homepage, icon: Home },

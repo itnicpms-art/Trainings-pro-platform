@@ -111,7 +111,7 @@ export function AdaptiveDashboard({
         </section>
 
         <aside className="space-y-3">
-          <DashboardQuickActions locale={locale} translations={t.quickActions} futureLabel={t.modules[firstModule].title} comingSoon={t.comingSoon} canAccessAdmin={canAccessPlatformAdmin} />
+          <DashboardQuickActions locale={locale} translations={t.quickActions} futureLabel={t.modules[firstModule].title} comingSoon={t.comingSoon} canAccessAdmin={canAccessPlatformAdmin} showGroupsLink={variant === "academicStudent"} />
           <Card size="sm" className="rounded-2xl bg-[#06113B] text-white shadow-lg shadow-blue-950/10 ring-0">
             <CardHeader>
               <div className="flex size-9 items-center justify-center rounded-xl bg-white/10"><ShieldCheck className="size-4 text-cyan-300" /></div>

@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { isLocale } from "@/i18n/config";
 import { mutateAcademicGroup, type AcademicGroupActionState } from "@/lib/manage/mutate-academic-group";
 import {
+  mutateAcademicGroupJoinRequest,
+  type AcademicGroupJoinRequestActionState,
+} from "@/lib/manage/mutate-academic-group-join-request";
+import {
   mutateAcademicGroupStaffAssignment,
   type AcademicGroupStaffAssignmentActionState,
 } from "@/lib/manage/mutate-academic-group-staff-assignment";
@@ -107,6 +111,18 @@ export async function mutateAcademicGroupStaffAssignmentAction(
   formData: FormData,
 ): Promise<AcademicGroupStaffAssignmentActionState> {
   const result = await mutateAcademicGroupStaffAssignment(formData);
+  const locale = formData.get("locale");
+  if (result.status === "success" && typeof locale === "string" && isLocale(locale)) {
+    revalidatePath(`/${locale}/app/manage/academic`);
+  }
+  return result;
+}
+
+export async function mutateAcademicGroupJoinRequestAction(
+  _previousState: AcademicGroupJoinRequestActionState,
+  formData: FormData,
+): Promise<AcademicGroupJoinRequestActionState> {
+  const result = await mutateAcademicGroupJoinRequest(formData);
   const locale = formData.get("locale");
   if (result.status === "success" && typeof locale === "string" && isLocale(locale)) {
     revalidatePath(`/${locale}/app/manage/academic`);

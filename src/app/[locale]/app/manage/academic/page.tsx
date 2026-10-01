@@ -8,6 +8,7 @@ import { AcademicStructureView } from "@/components/manage/academic-structure-vi
 import { AcademicTermsEditor } from "@/components/manage/academic-terms-editor";
 import { AcademicUnitsEditor } from "@/components/manage/academic-units-editor";
 import { AcademicYearsEditor } from "@/components/manage/academic-years-editor";
+import { PendingGroupJoinRequestsPanel } from "@/components/manage/pending-group-join-requests-panel";
 import { StructureOverviewShell, StructureRestricted, StructureUnavailable } from "@/components/manage/structure-overview-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { getDictionary, resolveLocale, type LocaleParams } from "@/i18n/get-dictionary";
@@ -25,6 +26,7 @@ import { getStudentGroupMembershipEditor } from "@/lib/manage/get-student-group-
 import { canAccessAcademicStructureManagement } from "@/lib/manage/structure-management-access";
 import { cn } from "@/lib/utils";
 import {
+  mutateAcademicGroupJoinRequestAction,
   mutateAcademicGroupStaffAssignmentAction,
   mutateAcademicProgramStaffAssignmentAction,
   mutateUniversityAcademicGroupAction,
@@ -154,6 +156,21 @@ export default async function AcademicStructureManagementPage({ params, searchPa
       action={mutateAcademicProgramStaffAssignmentAction}
     />
   ) : null;
+  // TASK 004.7: professor/program_coordinator read their program's pending
+  // requests from programStaffOverview (program-scoped); University Admin
+  // reads the whole university's from membershipEditorOverview -- two
+  // independent RPCs, matching the same split as the 004.6.2 overviews.
+  const pendingJoinRequests = isProgramStaff
+    ? (programStaffOverview?.pending_join_requests ?? [])
+    : (membershipEditorOverview?.pending_join_requests ?? []);
+  const joinRequestsSection = (
+    <PendingGroupJoinRequestsPanel
+      locale={locale}
+      requests={pendingJoinRequests}
+      translations={t.academic.joinRequestsEditor}
+      action={mutateAcademicGroupJoinRequestAction}
+    />
+  );
 
   // get_academic_structure_management_overview (migration 006) picks a
   // single role via LIMIT 1 and, for professor/program_coordinator,
@@ -174,6 +191,7 @@ export default async function AcademicStructureManagementPage({ params, searchPa
     return (
       <div className="space-y-4">
         {programStaffSection}
+        {joinRequestsSection}
         {staffAssignmentsSection}
       </div>
     );
@@ -218,6 +236,7 @@ export default async function AcademicStructureManagementPage({ params, searchPa
               groupStaffAction={mutateAcademicGroupStaffAssignmentAction}
             />
           ) : null}
+          {joinRequestsSection}
           {staffAssignmentsSection}
         </div>
       </StructureOverviewShell>
@@ -244,6 +263,7 @@ export default async function AcademicStructureManagementPage({ params, searchPa
         groupStaffTranslations={t.academic.groupStaffEditor}
         groupStaffAction={isUniversityAdmin ? mutateAcademicGroupStaffAssignmentAction : undefined}
       />
+      {joinRequestsSection}
       {staffAssignmentsSection}
     </div>
   );

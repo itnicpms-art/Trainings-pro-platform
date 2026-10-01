@@ -44,6 +44,7 @@ export function adaptProgramStaffOverview(overview: ProgramStaffAcademicOverview
     })),
     eligible_students: overview.eligible_students,
     memberships: overview.memberships,
+    pending_join_requests: overview.pending_join_requests,
   };
 
   return { groupsOverview, membershipOverview };

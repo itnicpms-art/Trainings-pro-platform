@@ -8,6 +8,7 @@ import { AcademicProgramsEditor } from "@/components/manage/academic-programs-ed
 import { AcademicTermsEditor } from "@/components/manage/academic-terms-editor";
 import { AcademicUnitsEditor } from "@/components/manage/academic-units-editor";
 import { AcademicYearsEditor } from "@/components/manage/academic-years-editor";
+import { PendingGroupJoinRequestsPanel } from "@/components/manage/pending-group-join-requests-panel";
 import { PageHeading } from "@/components/page-heading";
 import { buttonVariants } from "@/components/ui/button";
 import { getDictionary, resolveLocale, type LocaleParams } from "@/i18n/get-dictionary";
@@ -20,6 +21,7 @@ import { getAdminStudentGroupMembershipEditor } from "@/lib/admin/get-admin-stud
 import { cn } from "@/lib/utils";
 import {
   mutateAdminAcademicGroupAction,
+  mutateAdminAcademicGroupJoinRequestAction,
   mutateAdminAcademicGroupStaffAssignmentAction,
   mutateAdminAcademicProgramAction,
   mutateAdminAcademicProgramStaffAssignmentAction,
@@ -117,6 +119,12 @@ export default async function AdminAcademicStructurePage({ params, searchParams 
                   action={mutateAdminAcademicProgramStaffAssignmentAction}
                 />
               ) : null}
+              <PendingGroupJoinRequestsPanel
+                locale={locale}
+                requests={membershipOverview?.pending_join_requests ?? []}
+                translations={dictionary.app.structureManagement.academic.joinRequestsEditor}
+                action={mutateAdminAcademicGroupJoinRequestAction}
+              />
             </>
           ) : (
             <AdminEmptyState icon={Landmark} title={t.emptyTitle} description={t.emptyDescription} label={t.selectionRequired} />
