@@ -26,6 +26,8 @@ export function adaptProgramStaffOverview(overview: ProgramStaffAcademicOverview
     academic_years: overview.academic_years,
     academic_terms: overview.academic_terms,
     academic_groups: overview.academic_groups,
+    group_staff_assignments: overview.group_staff_assignments,
+    eligible_professors: overview.eligible_professors,
   };
 
   const membershipOverview: StudentGroupMembershipEditorOverview = {

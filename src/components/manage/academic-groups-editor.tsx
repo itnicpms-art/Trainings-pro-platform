@@ -3,6 +3,7 @@
 import { useActionState, useState, type FormEvent } from "react";
 import { CheckCircle2, Pencil, Plus, ShieldCheck, TriangleAlert, UsersRound } from "lucide-react";
 
+import { AcademicGroupStaffPanel } from "@/components/manage/academic-group-staff-panel";
 import { GroupMembershipPanel } from "@/components/manage/group-membership-panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,12 +13,17 @@ import { Label } from "@/components/ui/label";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ro";
 import type { AcademicGroupActionState } from "@/lib/manage/mutate-academic-group";
+import type { AcademicGroupStaffAssignmentActionState } from "@/lib/manage/mutate-academic-group-staff-assignment";
 import type { StudentGroupMembershipActionState } from "@/lib/manage/mutate-student-group-membership";
 import { cn } from "@/lib/utils";
 import type { AcademicGroupsEditorOverview, StudentGroupMembershipEditorOverview } from "@/types/database";
 
 type MutationAction = (state: AcademicGroupActionState, formData: FormData) => Promise<AcademicGroupActionState>;
 type MembershipMutationAction = (state: StudentGroupMembershipActionState, formData: FormData) => Promise<StudentGroupMembershipActionState>;
+type GroupStaffMutationAction = (
+  state: AcademicGroupStaffAssignmentActionState,
+  formData: FormData,
+) => Promise<AcademicGroupStaffAssignmentActionState>;
 type EditorTranslations = Dictionary["app"]["structureManagement"]["academic"]["groupsEditor"];
 type AcademicGroup = AcademicGroupsEditorOverview["academic_groups"][number];
 type AcademicProgram = AcademicGroupsEditorOverview["academic_programs"][number];
@@ -220,6 +226,8 @@ export function AcademicGroupsEditor({
   membershipOverview,
   membershipTranslations,
   membershipAction,
+  groupStaffTranslations,
+  groupStaffAction,
 }: {
   locale: Locale;
   overview: AcademicGroupsEditorOverview;
@@ -228,17 +236,32 @@ export function AcademicGroupsEditor({
   membershipOverview?: StudentGroupMembershipEditorOverview | null;
   membershipTranslations?: Dictionary["app"]["structureManagement"]["academic"]["membershipEditor"];
   membershipAction?: MembershipMutationAction;
+  groupStaffTranslations?: Dictionary["app"]["structureManagement"]["academic"]["groupStaffEditor"];
+  groupStaffAction?: GroupStaffMutationAction;
 }) {
   const university = overview.selected_university;
   const [creating, setCreating] = useState(false);
+  // TASK 004.6.2: "My groups" is a pure client-side filter over data the
+  // professor already received in full -- group_staff_assignments is
+  // already server-filtered to the professor's own rows for actor_mode
+  // 'professor' (see get_program_staff_academic_overview), so this never
+  // changes what data is fetched or what the professor is authorized to
+  // see/manage; it only narrows which already-visible groups are shown.
+  const [myGroupsOnly, setMyGroupsOnly] = useState(false);
   if (!university) return null;
 
+  const isProfessorViewer = overview.actor_mode === "professor";
   const eligiblePrograms = overview.academic_programs.filter((program) => program.status !== "archived");
   const eligibleYears = overview.academic_years.filter((year) => year.status !== "archived");
   const eligibleTerms = overview.academic_terms.filter((term) => term.status !== "archived");
   const programNames = new Map(overview.academic_programs.map((program) => [program.id, program.name]));
   const yearNames = new Map(overview.academic_years.map((year) => [year.id, year.name]));
   const termNames = new Map(overview.academic_terms.map((term) => [term.id, term.name]));
+  const visibleGroups = isProfessorViewer && myGroupsOnly
+    ? overview.academic_groups.filter((group) => overview.group_staff_assignments.some(
+        (assignment) => assignment.academic_group_id === group.id && assignment.staff_profile_id === overview.actor_profile_id,
+      ))
+    : overview.academic_groups;
 
   return (
     <Card className="shadow-sm ring-slate-200">
@@ -248,8 +271,14 @@ export function AcademicGroupsEditor({
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><UsersRound className="size-5" /></span>
             <div><CardTitle>{t.title}</CardTitle><CardDescription className="mt-1">{t.description}</CardDescription></div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={() => setCreating((current) => !current)} className={cn(buttonVariants({ variant: creating ? "default" : "outline" }), creating && "brand-gradient")}><Plus className="size-4" />{t.add}</button>
+            {isProfessorViewer && groupStaffTranslations ? (
+              <label className="flex items-center gap-2 text-xs font-medium text-[#06113B]">
+                <input type="checkbox" checked={myGroupsOnly} onChange={(event) => setMyGroupsOnly(event.target.checked)} className="size-4 rounded border-input" />
+                {groupStaffTranslations.myGroupsOnly}
+              </label>
+            ) : null}
           </div>
           {creating ? <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
             {/* Keyed on the row count so a successful create (which adds a row and
@@ -272,7 +301,9 @@ export function AcademicGroupsEditor({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {overview.academic_groups.length === 0 ? <p className="py-8 text-center text-sm text-slate-500">{t.empty}</p> : overview.academic_groups.map((group) => {
+        {visibleGroups.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-500">{myGroupsOnly && groupStaffTranslations ? groupStaffTranslations.noMyGroups : t.empty}</p>
+        ) : visibleGroups.map((group) => {
           const contextParts = [
             programNames.get(group.academic_program_id) ?? t.programUnavailable,
             group.academic_year_id ? (yearNames.get(group.academic_year_id) ?? t.yearUnavailable) : null,
@@ -311,6 +342,16 @@ export function AcademicGroupsEditor({
                   memberships={membershipOverview.memberships}
                   translations={membershipTranslations}
                   action={membershipAction}
+                />
+              ) : null}
+              {groupStaffTranslations ? (
+                <AcademicGroupStaffPanel
+                  locale={locale}
+                  group={{ id: group.id, academic_program_id: group.academic_program_id }}
+                  assignments={overview.group_staff_assignments}
+                  eligibleProfessors={overview.eligible_professors}
+                  translations={groupStaffTranslations}
+                  action={isProfessorViewer ? undefined : groupStaffAction}
                 />
               ) : null}
             </details>

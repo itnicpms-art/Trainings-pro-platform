@@ -22,6 +22,7 @@
 | 004.5 | `tasks/TASK-004-5-academic-groups-editable-management.md` | Editare auditată și strict scoped pentru grupe academice |
 | 004.6 | `tasks/TASK-004-6-student-group-membership-management.md` | Alocare, mutare și încheiere auditată a apartenenței studenților la grupe |
 | 004.6.1 | `tasks/TASK-004-6-1-academic-staff-program-access.md` | Alocări program-scoped pentru Professor/Program Coordinator și gestionare grupe/apartenențe în programul alocat |
+| 004.6.2 | `tasks/TASK-004-6-2-academic-group-staff-responsibilities.md` | Responsabilitate nominală Professor↔Grupă academică, alocată/eliminată de Program Coordinator/University Admin/Platform Admin |
 | 004.7 | *(neimplementat)* | Cereri de înscriere în grupă și flux de aprobare |
 | 004.8 | `TASK-004-courses-curriculum-lessons.md` | Catalog cursuri, curriculum, module, lecții, resurse |
 | 005 | `TASK-005-enrollments-progress-calendar.md` | Enrollment, auto-allocation, progress, calendar multi-profile |
@@ -152,6 +153,13 @@ TASK 004.6 reutilizează `academic_profile_contexts` (existentă din migrarea 00
 - `docs/roadmap/TASK_004_6_1_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
 
 TASK 004.6.1 introduce autorizare program-scoped pentru Professor și Program Coordinator: alocarea la un program academic (`profile_roles(scope_type='program')`) controlează accesul, nu alocarea nominală la o grupă. Un profil poate avea mai multe alocări de program simultan. University Admin și Platform Admin pot aloca/revoca aceste roluri numai în universitatea proprie/selectată; Program Coordinator nu poate aloca autorizare la nivel de program în acest task. Migrația 016 (forward-only, migrațiile 001–015 rămân neschimbate) extinde RPC-urile TASK 004.5/004.6 cu un al doilea mod de autorizare, adaugă `resolve_academic_program_editor_mode`, `grant_academic_program_staff_role`, `revoke_academic_program_staff_role` și o tabelă de audit dedicată. Alocarea nominală profesor↔grupă, auto-solicitarea și aprobarea de către Program Coordinator rămân TASK 004.6.2; cererile de înscriere ale studenților rămân TASK 004.7. TASK 004.8 (cursuri/curriculum, Codex) nu este atins.
+
+## Documentație TASK 004.6.2
+
+- `docs/tasks/TASK-004-6-2-academic-group-staff-responsibilities.md` — modelul de responsabilitate nominală, regula self-target, integrarea cu revocarea rolului de program și cu mutarea grupei între programe, RPC-urile și auditul;
+- `docs/roadmap/TASK_004_6_2_COMPLETION_NOTES.md` — implementarea, securitatea, validările, QA și lucrul amânat.
+
+TASK 004.6.2 adaugă responsabilitate nominală Professor↔Grupă academică, complet separată de autorizare: alocarea la program (`profile_roles(scope_type='program')`, TASK 004.6.1) rămâne singura sursă de acces; responsabilitatea la nivel de grupă (tabela nouă `academic_group_staff_assignments`) nu acordă și nu retrage niciodată acces. Numai Program Coordinator (în programul coordonat), University Admin (propria universitate) și Platform Admin (universitatea selectată) pot aloca/elimina responsabilitatea; Professor nu se poate auto-aloca și nu poate aloca pe altcineva. Un Program Coordinator/University Admin/Platform Admin se poate aloca pe sine ca profesor responsabil DOAR dacă profilul propriu are deja un rol real de professor pentru programul respectiv. Migrația 018 (forward-only; migrațiile 001–017 rămân neschimbate și imuabile) adaugă `academic_group_staff_assignments` și tabela sa de audit, RPC-urile `assign_professor_to_academic_group`/`unassign_professor_from_academic_group`, extinde `revoke_academic_program_staff_role` (curăță responsabilitățile de grupă numai când nicio altă alocare reală de professor nu mai există pentru profil+program), extinde `update_academic_group` (blochează mutarea unei grupe între programe cât timp are responsabilități active) și extinde ambele RPC-uri de citire existente (`get_program_staff_academic_overview`, `get_academic_groups_editor_overview`) cu datele de responsabilitate — un Professor obișnuit primește exclusiv propriile rânduri și niciodată lista de profesori eligibili. Nu există auto-solicitare, flux de aprobare, ierarhie lead/assistant sau rol de coordonator la nivel de grupă. Alocarea personalului la Course Offering (TASK 004.8.1, viitor) și cererile de înscriere ale studenților (TASK 004.7) rămân neatinse.
 
 ## Reguli de execuție
 

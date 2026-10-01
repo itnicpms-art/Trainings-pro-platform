@@ -25,6 +25,7 @@ import { getStudentGroupMembershipEditor } from "@/lib/manage/get-student-group-
 import { canAccessAcademicStructureManagement } from "@/lib/manage/structure-management-access";
 import { cn } from "@/lib/utils";
 import {
+  mutateAcademicGroupStaffAssignmentAction,
   mutateAcademicProgramStaffAssignmentAction,
   mutateUniversityAcademicGroupAction,
   mutateUniversityAcademicProgramAction,
@@ -135,6 +136,8 @@ export default async function AcademicStructureManagementPage({ params, searchPa
               membershipOverview={adaptedProgramStaffOverview.membershipOverview}
               membershipTranslations={t.academic.membershipEditor}
               membershipAction={mutateUniversityStudentGroupMembershipAction}
+              groupStaffTranslations={t.academic.groupStaffEditor}
+              groupStaffAction={mutateAcademicGroupStaffAssignmentAction}
             />
           ) : (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">{t.academic.programStaffOverview.unavailable}</div>
@@ -211,6 +214,8 @@ export default async function AcademicStructureManagementPage({ params, searchPa
               membershipOverview={membershipEditorOverview}
               membershipTranslations={t.academic.membershipEditor}
               membershipAction={mutateUniversityStudentGroupMembershipAction}
+              groupStaffTranslations={t.academic.groupStaffEditor}
+              groupStaffAction={mutateAcademicGroupStaffAssignmentAction}
             />
           ) : null}
           {staffAssignmentsSection}
@@ -236,6 +241,8 @@ export default async function AcademicStructureManagementPage({ params, searchPa
         groupAction={isUniversityAdmin ? mutateUniversityAcademicGroupAction : undefined}
         membershipEditorOverview={membershipEditorOverview}
         membershipAction={isUniversityAdmin ? mutateUniversityStudentGroupMembershipAction : undefined}
+        groupStaffTranslations={t.academic.groupStaffEditor}
+        groupStaffAction={isUniversityAdmin ? mutateAcademicGroupStaffAssignmentAction : undefined}
       />
       {staffAssignmentsSection}
     </div>
